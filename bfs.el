@@ -323,7 +323,7 @@ the frame layout."
      (t nil))
     ))
 
-(defun bfs-done-hook ()
+(defun bfs-check-environment ()
   "Leave `bfs' environment if it is corrupted.
 Intended to be used in `window-configuration-change-hook'.
 This ensure not to end in an inconsistent state.
@@ -345,10 +345,10 @@ command is not bound in `bfs-mode-map'."
                 (--first (commandp (lookup-key it key nil))
                          bfs-allowed-keymaps)
                 (memq this-command bfs-allowed-commands))
-      ;; see https://emacs.stackexchange.com/questions/20974/exit-minibuffer-and-execute-a-command-afterwards
-      ;; for the trick
       (if (not (window-minibuffer-p))
           (bfs-quit)
+        ;; see https://emacs.stackexchange.com/questions/20974/exit-minibuffer-and-execute-a-command-afterwards
+        ;; for the trick
         (put 'quit 'error-message "")
         (run-at-time nil nil
                      (lambda ()
@@ -385,7 +385,7 @@ Put path of last visited file into the `kill-ring'."
     (remove-hook 'pre-command-hook 'bfs-pre-command-hook)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-window-hook)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-window-hook)
-    (remove-hook 'window-configuration-change-hook 'bfs-done-hook)
+    (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
     (delete-other-windows)
     (setq bfs-backward-last-visited nil)
@@ -477,7 +477,7 @@ from `current-buffer'. "
   (add-hook 'pre-command-hook 'bfs-pre-command-hook)
   (add-hook 'isearch-mode-end-hook 'bfs-preview-window-hook)
   (add-hook 'isearch-update-post-hook 'bfs-preview-window-hook)
-  (add-hook 'window-configuration-change-hook 'bfs-done-hook))
+  (add-hook 'window-configuration-change-hook 'bfs-check-environment))
 
 (global-set-key (kbd "M-]") 'bfs)
 
