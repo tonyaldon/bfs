@@ -199,6 +199,15 @@ When FIRST-TIME is non-nil, set the window layout."
           (if first-time bfs-preview-window t)))
         bfs-visited-file-buffers))
 
+(defun bfs-preview-update ()
+  "Update the preview window with the current child entry file.
+
+Intended to be added to `isearch-update-post-hook' and
+`isearch-mode-end-hook'.  This allows to preview the file the
+cursor has moved to using \"isearch\" commands in
+`bfs-child-buffer-name' buffer."
+  (bfs-preview default-directory (bfs-child-entry)))
+
 (defun bfs-update (parent child-entry)
   "Update \"bfs\" buffers according to the argument PARENT and
 CHILD-ENTRY."
@@ -356,11 +365,6 @@ command is not bound in `bfs-mode-map'."
                        (bfs-quit)))
         (minibuffer-keyboard-quit)))))
 
-(defun bfs-preview-window-hook ()
-  "Intended to be use as `isearch-update-post-hook'.  This allows
-to preview the file the cursor has moved to using \"isearch\" commands."
-  (bfs-preview default-directory (bfs-child-entry)))
-
 (setq bfs-visited-file-buffers nil)
 
 (defvar bfs-buffer-list nil
@@ -383,8 +387,8 @@ Kill bfs buffers.
 Put path of last visited file into the `kill-ring'."
   (unless (window-minibuffer-p)
     (remove-hook 'pre-command-hook 'bfs-pre-command-hook)
-    (remove-hook 'isearch-mode-end-hook 'bfs-preview-window-hook)
-    (remove-hook 'isearch-update-post-hook 'bfs-preview-window-hook)
+    (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
+    (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
     (delete-other-windows)
@@ -475,8 +479,8 @@ from `current-buffer'. "
          (child-entry-initial (bfs-child-entry-initial (current-buffer))))
     (bfs-display parent child-entry-initial))
   (add-hook 'pre-command-hook 'bfs-pre-command-hook)
-  (add-hook 'isearch-mode-end-hook 'bfs-preview-window-hook)
-  (add-hook 'isearch-update-post-hook 'bfs-preview-window-hook)
+  (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
+  (add-hook 'isearch-update-post-hook 'bfs-preview-update)
   (add-hook 'window-configuration-change-hook 'bfs-check-environment))
 
 (global-set-key (kbd "M-]") 'bfs)
