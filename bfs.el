@@ -142,6 +142,12 @@ of `default-directory'."
 
 ;;; Create, display and update buffers
 
+(defvar bfs-parent-buffer-name "*bfs-parent*"
+  "Parent buffer name.")
+
+(defvar bfs-child-buffer-name "*bfs-child*"
+  "Child buffer name.")
+
 (defvar bfs-parent-window
   '(display-buffer-in-side-window
     (side . left)
@@ -158,7 +164,7 @@ of `default-directory'."
 (defun bfs-parent (parent)
   "Produce *bfs-parent* buffer with the listing
 of the directory containing PARENT directory."
-  (with-current-buffer (get-buffer-create "*bfs-parent*")
+  (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
     (cond ((f-root-p parent) (insert "/") (bfs-goto-entry "/"))
@@ -169,9 +175,9 @@ of the directory containing PARENT directory."
     (bfs-mode parent)))
 
 (defun bfs-child (parent child-entry)
-  "Produce *bfs-child* buffer with the listing
+  "Produce `bfs-child-buffer-name' buffer with the listing
 of the directory PARENT and the cursor at CHILD entry."
-  (with-current-buffer (get-buffer-create "*bfs-child*")
+  (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
     (insert (shell-command-to-string
@@ -206,8 +212,8 @@ CHILD-ENTRY arguments."
   (delete-other-windows)
   (bfs-parent parent)
   (bfs-child parent child-entry)
-  (display-buffer "*bfs-parent*" bfs-parent-window)
-  (display-buffer "*bfs-child*" bfs-child-window)
+  (display-buffer bfs-parent-buffer-name bfs-parent-window)
+  (display-buffer bfs-child-buffer-name bfs-child-window)
   (bfs-preview parent child-entry t))
 
 ;;; Find a file
@@ -243,7 +249,7 @@ and will not exit `bfs-mode'.")
 
 (defvar bfs-allowed-keymaps
   `(;; to allow `isearch-forward', `isearch-backward'
-    ;; in *bfs-child* buffer
+    ;; in `bfs-child-buffer-name' buffer
     ,isearch-mode-map
     ;; to allow interaction in the minibuffer without exiting
     ;; `bfs' environment mandatory for `bfs-find-file' to work
@@ -267,7 +273,7 @@ not exit `bfs-mode'.")
   "Return t if PREVIEW-BUFFER-NAME buffer in the bfs preview window
 doesn't match with the child entry."
   (let ((child-entry-path
-         (with-current-buffer "*bfs-child*"
+         (with-current-buffer bfs-child-buffer-name
            (f-join default-directory (bfs-child-entry))))
         preview-major-mode preview-directory preview-bfn)
     (with-current-buffer preview-buffer-name
@@ -288,13 +294,13 @@ the frame layout."
   (let* ((window-buffer-name-list
           (--map (buffer-name (window-buffer it)) (window-list)))
          (bfs-child-buffer-is-not-displayed
-          (not (-contains-p window-buffer-name-list "*bfs-child*")))
+          (not (-contains-p window-buffer-name-list bfs-child-buffer-name)))
          (bfs-parent-buffer-is-not-displayed
-          (not (-contains-p window-buffer-name-list "*bfs-parent*")))
+          (not (-contains-p window-buffer-name-list bfs-parent-buffer-name)))
          (wrong-amount-of-displayed-windows
           (not (equal (length window-buffer-name-list) 3)))
          (preview-buffer-name
-          (car (--remove (member it '("*bfs-child*" "*bfs-parent*"))
+          (car (--remove (member it `(,bfs-child-buffer-name ,bfs-parent-buffer-name))
                          window-buffer-name-list))))
     (cond
      ((memq last-command '(bfs
@@ -384,10 +390,10 @@ Put path of last visited file into the `kill-ring'."
     (delete-other-windows)
     (setq bfs-backward-last-visited nil)
     (bfs-kill-visited-file-buffers)
-    (when (get-buffer "*bfs-parent*")
-      (kill-buffer "*bfs-parent*"))
-    (when (get-buffer "*bfs-child*")
-      (kill-buffer "*bfs-child*"))))
+    (when (get-buffer bfs-parent-buffer-name)
+      (kill-buffer bfs-parent-buffer-name))
+    (when (get-buffer bfs-child-buffer-name)
+      (kill-buffer bfs-child-buffer-name))))
 
 (defun bfs-quit ()
   "Leave `bfs-mode' and restore previous window configuration."
