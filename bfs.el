@@ -411,7 +411,7 @@ Put path of last visited file into the `kill-ring'."
 ;;; bfs-mode
 
 (defface bfs-directory
-  '((t (:inherit font-lock-function-name-face)))
+  '((t (:foreground "#458b74")))
   "Face used for subdirectories.")
 
 (defvar bfs-directory-face 'bfs-directory
