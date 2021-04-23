@@ -365,7 +365,10 @@ command is not bound in `bfs-mode-map'."
                        (bfs-quit)))
         (minibuffer-keyboard-quit)))))
 
-(setq bfs-visited-file-buffers nil)
+(defvar bfs-visited-file-buffers nil
+  "List of live buffers visited with `bfs-preview' function
+during a `bfs' session.
+Use internally.")
 
 (defvar bfs-buffer-list nil
   "List of all live buffers when entering in the `bfs' environment.
