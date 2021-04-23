@@ -456,7 +456,10 @@ Put path of last visited file into the `kill-ring'."
   "Keymap for `bfs-mode'.")
 
 (defun bfs-mode (&optional parent)
-  "Pop 3 panes frame to browse file system and preview files."
+  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
+buffers when `bfs' environment is \"activated\" with `bfs' command.
+
+See `bfs-child' and `bfs-parent' commands."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
