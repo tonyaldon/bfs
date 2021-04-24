@@ -299,9 +299,8 @@ doesn't match with the child entry."
 
 (defun bfs-environment-is-corrupted-p ()
   "Return t if the frame environment isn't a conform `bfs' environment.
-For instance, this can happen if you allow commands like
-`delete-other-windows' in `bfs-allowed-commands' that modify
-the frame layout."
+For instance, any command that change the frame layout lead to a
+corrupted `bfs' environment."
   (let* ((window-buffer-name-list
           (--map (buffer-name (window-buffer it)) (window-list)))
          (bfs-child-buffer-is-not-displayed
