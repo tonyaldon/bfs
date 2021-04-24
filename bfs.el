@@ -64,7 +64,8 @@ If not, leave bfs and visit child-entry file."
            (message "%s" new-child-entry)
            (bfs-update new-parent new-child-entry))
           (t
-           (bfs-done)
+           (bfs-clean)
+           (delete-other-windows)
            (find-file child-entry-path)))))
 
 ;;; Scrolling
@@ -303,9 +304,9 @@ leave `bfs'environment.  If you want to modify your File System,
 use `dired' and any shell in your favorite terminal emulator.
 
 See `bfs-environment-is-corrupted-p'."
-  (if (bfs-environment-is-corrupted-p) (bfs-done)))
-
-
+  (when (bfs-environment-is-corrupted-p)
+    (bfs-clean)
+    (delete-other-windows)))
 
 (defvar bfs-visited-file-buffers nil
   "List of live buffers visited with `bfs-preview' function
@@ -325,17 +326,16 @@ before entering in the `bfs' environment."
   (setq bfs-visited-file-buffers nil)
   (setq bfs-buffer-list nil))
 
-(defun bfs-done ()
   "Leave `bfs-mode'.
 Clean environment.
 Kill bfs buffers.
 Put path of last visited file into the `kill-ring'."
+(defun bfs-clean ()
   (unless (window-minibuffer-p)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
-    (delete-other-windows)
     (setq bfs-backward-last-visited nil)
     (bfs-kill-visited-file-buffers)
     (when (get-buffer bfs-parent-buffer-name)
@@ -346,7 +346,7 @@ Put path of last visited file into the `kill-ring'."
 (defun bfs-quit ()
   "Leave `bfs-mode' and restore previous window configuration."
   (interactive)
-  (bfs-done)
+  (bfs-clean)
   (jump-to-register :bfs))
 
 ;;; bfs-mode
