@@ -311,11 +311,11 @@ See `bfs-environment-is-corrupted-p'."
 (defvar bfs-visited-file-buffers nil
   "List of live buffers visited with `bfs-preview' function
 during a `bfs' session.
-Use internally.")
+Used internally.")
 
 (defvar bfs-buffer-list nil
   "List of all live buffers when entering in the `bfs' environment.
-Use internally.")
+Used internally.")
 
 (defun bfs-kill-visited-file-buffers ()
   "Kill the buffers used to preview files with `bfs-preview'.
