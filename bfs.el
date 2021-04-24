@@ -148,18 +148,19 @@ of `default-directory'."
 (defvar bfs-child-buffer-name "*bfs-child*"
   "Child buffer name.")
 
-(defvar bfs-parent-window
+(defvar bfs-parent-window-parameters
   '(display-buffer-in-side-window
     (side . left)
     (window-width . 0.2)
     (window-parameters . ((no-other-window . t)))))
 
-(defvar bfs-child-window '(display-buffer-same-window))
+(defvar bfs-child-window-parameters '(display-buffer-same-window))
 
-(defvar bfs-preview-window
+(defvar bfs-preview-window-parameters
   '(display-buffer-in-direction
     (direction . right)
-    (window-width . 0.6)))
+    (window-width . 0.6)
+    (window-parameters . ((no-other-window . t)))))
 
 (defun bfs-parent (parent)
   "Produce *bfs-parent* buffer with the listing
@@ -193,11 +194,12 @@ When FIRST-TIME is non-nil, set the window layout."
   ;;       Take care, if done wrong this can slowdown (freeze) emacs.
   ;;       You can profile emacs if you need with: profiler-start
   ;;       and profiler-report
-  (push (window-buffer
+  (let ((preview-window
          (display-buffer
           (find-file-noselect (f-join parent child-entry))
-          (if first-time bfs-preview-window t)))
-        bfs-visited-file-buffers))
+          (if first-time bfs-preview-window-parameters t))))
+    (push (window-buffer preview-window) bfs-visited-file-buffers)
+    preview-window))
 
 (defun bfs-preview-update ()
   "Update the preview window with the current child entry file.
@@ -221,8 +223,8 @@ CHILD-ENTRY arguments."
   (delete-other-windows)
   (bfs-parent parent)
   (bfs-child parent child-entry)
-  (display-buffer bfs-parent-buffer-name bfs-parent-window)
-  (display-buffer bfs-child-buffer-name bfs-child-window)
+  (display-buffer bfs-parent-buffer-name bfs-parent-window-parameters)
+  (display-buffer bfs-child-buffer-name bfs-child-window-parameters)
   (bfs-preview parent child-entry t))
 
 ;;; Find a file
