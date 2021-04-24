@@ -221,6 +221,9 @@ CHILD-ENTRY."
   (bfs-child parent child-entry)
   (bfs-preview parent child-entry))
 
+(defvar bfs-frame nil
+  "Frame where the bfs environment has been started.
+Used internally.")
 (defun bfs-display (parent child-entry)
   "Display \"bfs\" buffers in a 3 panes layout for PARENT and
 CHILD-ENTRY arguments."
@@ -229,7 +232,8 @@ CHILD-ENTRY arguments."
   (bfs-child parent child-entry)
   (display-buffer bfs-parent-buffer-name bfs-parent-window-parameters)
   (display-buffer bfs-child-buffer-name bfs-child-window-parameters)
-  (bfs-preview parent child-entry t))
+  (bfs-preview parent child-entry t)
+  (setq bfs-frame (selected-frame)))
 
 ;;; Find a file
 
@@ -287,6 +291,7 @@ corrupted `bfs' environment."
                            bfs-forward
                            bfs-find-file))
       nil)
+     ((not (eq (selected-frame) bfs-frame)) nil)
      ((or bfs-child-buffer-is-not-displayed
           bfs-parent-buffer-is-not-displayed
           wrong-amount-of-displayed-windows)
@@ -310,6 +315,12 @@ See `bfs-environment-is-corrupted-p'."
   (when (bfs-environment-is-corrupted-p)
     (bfs-clean)
     (delete-other-windows)))
+
+(defun bfs-done-if-frame-deleted (frame)
+  "Clean `bfs' environment if the frame that was running it has been deleted.
+Intended to be added to `after-delete-frame-functions'."
+  (unless (frame-live-p bfs-frame)
+    (bfs-clean)))
 
 (defvar bfs-visited-file-buffers nil
   "List of live buffers visited with `bfs-preview' function
@@ -335,11 +346,13 @@ Kill bfs buffers.
 Put path of last visited file into the `kill-ring'."
 (defun bfs-clean ()
   (unless (window-minibuffer-p)
+    (remove-function after-delete-frame-functions 'bfs-done-if-frame-deleted)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
     (setq bfs-backward-last-visited nil)
+    (setq bfs-frame nil)
     (bfs-kill-visited-file-buffers)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
@@ -431,6 +444,7 @@ from `current-buffer'. "
   (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
   (add-hook 'isearch-update-post-hook 'bfs-preview-update)
   (add-hook 'window-configuration-change-hook 'bfs-check-environment))
+    (add-function :before after-delete-frame-functions 'bfs-done-if-frame-deleted)
 
 (global-set-key (kbd "M-]") 'bfs)
 
