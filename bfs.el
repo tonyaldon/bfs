@@ -280,25 +280,14 @@ corrupted `bfs' environment."
           (car (--remove (member it `(,bfs-child-buffer-name ,bfs-parent-buffer-name))
                          window-buffer-name-list))))
     (cond
-     ((memq last-command '(bfs
-                           ;; we must add the following commands because
-                           ;; they modify at least two windows and so modify
-                           ;; `window-configuration-change-hook' at least twice
-                           ;; before `bfs' environment becomes again correct.
-                           ;; While `bfs' environment becomes again correct we
-                           ;; don't want to exit from `bfs' environment
-                           bfs-backward
-                           bfs-forward
-                           bfs-find-file))
-      nil)
      ((window-minibuffer-p) nil)
      ((not (eq (selected-frame) bfs-frame)) nil)
+     ((memq last-command '(bfs bfs-backward bfs-forward bfs-find-file)) nil)
      ((or bfs-child-buffer-is-not-displayed
           bfs-parent-buffer-is-not-displayed
           wrong-amount-of-displayed-windows)
       t)
-     ((bfs-preview-buffer-does-not-match-child-entry preview-buffer-name)
-      t)
+     ((bfs-preview-buffer-does-not-match-child-entry preview-buffer-name) t)
      (t nil))
     ))
 
