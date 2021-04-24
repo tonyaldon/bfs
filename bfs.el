@@ -230,21 +230,7 @@ CHILD-ENTRY arguments."
 ;;; Find a file
 
 (defun bfs-find-file (filename &optional wildcards)
-  "Find a file with your completion framework and update `bfs' environment.
-
-Note `bfs' environment is designed in a way that any commands
-that is not bound in `bfs-mode-map' (or in one of the keymaps
-in `bfs-allowed-keymaps' or listed in `bfs-allowed-commands')
-will lead to leave `bfs' environment.
-
-So, to get `bfs-find-file' works properly, you must add to
-`bfs-allowed-keymaps' list the keymaps used by your completion
-framework.
-
-- If you use the default completion framework, you
-  must add `minibuffer-local-map' to `bfs-allowed-keymaps'.
-- If you use `ivy-mode' completion framework, you
-  must add `ivy-minibuffer-map' to `bfs-allowed-keymaps'."
+  "Find a file with your completion framework and update `bfs' environment."
   (interactive (find-file-read-args "Find file: " t))
   (cond ((f-root-p filename)
          (bfs-update "/" "/"))
@@ -252,33 +238,6 @@ framework.
          (bfs-update (f-dirname filename) (f-filename filename)))))
 
 ;;; Leave bfs
-
-(defvar bfs-allowed-commands
-  '(self-insert-command)
-  "Commands that can be used when in `bfs-mode'
-and will not exit `bfs-mode'.")
-
-(defvar bfs-allowed-keymaps
-  `(;; to allow `isearch-forward', `isearch-backward'
-    ;; in `bfs-child-buffer-name' buffer
-    ,isearch-mode-map
-    ;; to allow interaction in the minibuffer without exiting
-    ;; `bfs' environment mandatory for `bfs-find-file' to work
-    ,minibuffer-local-map
-    ,minibuffer-local-completion-map
-    ,minibuffer-local-filename-must-match-map
-    ,minibuffer-local-filename-completion-map
-    ,minibuffer-local-ns-map
-    ,minibuffer-local-must-match-map
-    ,minibuffer-local-completion-map
-    ,minibuffer-local-isearch-map
-    ,minibuffer-inactive-mode-map
-    ;; uncomment next line if you use `ivy-mode'
-    ;; ,ivy-minibuffer-map
-    )
-  "List of keymaps.  Any command bound in any keymaps of
-`bfs-allowed-keymap' can be used in `bfs-mode' and will
-not exit `bfs-mode'.")
 
 (defun bfs-preview-buffer-does-not-match-child-entry (preview-buffer-name)
   "Return t if PREVIEW-BUFFER-NAME buffer in the bfs preview window
@@ -347,24 +306,6 @@ See `bfs-environment-is-corrupted-p'."
   (if (bfs-environment-is-corrupted-p) (bfs-done)))
 
 
-(defun bfs-pre-command-hook ()
-  "Exit `bfs' environment if the key sequence that invoked this
-command is not bound in `bfs-mode-map'."
-  (let ((key (this-single-command-keys)))
-    (unless (or (commandp (lookup-key bfs-mode-map key nil))
-                (--first (commandp (lookup-key it key nil))
-                         bfs-allowed-keymaps)
-                (memq this-command bfs-allowed-commands))
-      (if (not (window-minibuffer-p))
-          (bfs-quit)
-        ;; see https://emacs.stackexchange.com/questions/20974/exit-minibuffer-and-execute-a-command-afterwards
-        ;; for the trick
-        (put 'quit 'error-message "")
-        (run-at-time nil nil
-                     (lambda ()
-                       (put 'quit 'error-message "Quit")
-                       (bfs-quit)))
-        (minibuffer-keyboard-quit)))))
 
 (defvar bfs-visited-file-buffers nil
   "List of live buffers visited with `bfs-preview' function
@@ -390,7 +331,6 @@ Clean environment.
 Kill bfs buffers.
 Put path of last visited file into the `kill-ring'."
   (unless (window-minibuffer-p)
-    (remove-hook 'pre-command-hook 'bfs-pre-command-hook)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
@@ -485,7 +425,6 @@ from `current-buffer'. "
   (let* ((parent default-directory)
          (child-entry-initial (bfs-child-entry-initial (current-buffer))))
     (bfs-display parent child-entry-initial))
-  (add-hook 'pre-command-hook 'bfs-pre-command-hook)
   (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
   (add-hook 'isearch-update-post-hook 'bfs-preview-update)
   (add-hook 'window-configuration-change-hook 'bfs-check-environment))
