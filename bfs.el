@@ -66,6 +66,9 @@ If not, leave bfs and visit child-entry file."
           (t
            (bfs-clean)
            (delete-other-windows)
+           ;; FIXME: when trying to open a file I'm not
+           ;; permitted. For instance, when I'm not the root user
+           ;; and the file has this permission: drwx------
            (find-file child-entry-path)))))
 
 ;;; Scrolling
