@@ -291,6 +291,7 @@ corrupted `bfs' environment."
                            bfs-forward
                            bfs-find-file))
       nil)
+     ((window-minibuffer-p) nil)
      ((not (eq (selected-frame) bfs-frame)) nil)
      ((or bfs-child-buffer-is-not-displayed
           bfs-parent-buffer-is-not-displayed
