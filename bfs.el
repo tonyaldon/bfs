@@ -163,8 +163,7 @@ of `default-directory'."
 (defvar bfs-preview-window-parameters
   '(display-buffer-in-direction
     (direction . right)
-    (window-width . 0.6)
-    (window-parameters . ((no-other-window . t)))))
+    (window-width . 0.6)))
 
 (defun bfs-parent (parent)
   "Produce *bfs-parent* buffer with the listing
