@@ -384,6 +384,14 @@ before entering in the `bfs' environment."
 
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") 'bfs-quit)
+    map)
+  "Keymap for `bfs-mode'.")
+
+(defvar bfs-child-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map bfs-mode-map)
+
     (define-key map (kbd "p") 'bfs-previous)
     (define-key map (kbd "n") 'bfs-next)
     (define-key map (kbd "b") 'bfs-backward)
@@ -404,7 +412,13 @@ before entering in the `bfs' environment."
 
     (define-key map (kbd "q") 'bfs-quit)
     map)
-  "Keymap for `bfs-mode'.")
+  "Keymap for `bfs-mode' used in `bfs-child-buffer-name' buffer.")
+
+(defvar bfs-parent-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map bfs-mode-map)
+    map)
+  "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
 
 (defun bfs-mode (&optional parent)
   "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
@@ -414,7 +428,11 @@ See `bfs-child' and `bfs-parent' commands."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
-  (use-local-map bfs-mode-map)
+  (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
+         (use-local-map bfs-child-mode-map))
+        ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
+         (use-local-map bfs-parent-mode-map))
+        (t t))
   (hl-line-mode)
   (face-remap-add-relative 'hl-line :background bfs-hl-line-background)
   (face-remap-add-relative 'hl-line :foreground bfs-hl-line-foreground)
