@@ -224,6 +224,12 @@ CHILD-ENTRY."
 (defvar bfs-frame nil
   "Frame where the bfs environment has been started.
 Used internally.")
+
+(defvar bfs-environment-is-on-p nil
+  "t means that `bfs' environment has been turned on
+in the frame `bfs-frame'.
+Used internally.")
+
 (defun bfs-display (parent child-entry)
   "Display \"bfs\" buffers in a 3 panes layout for PARENT and
 CHILD-ENTRY arguments."
@@ -333,6 +339,7 @@ before entering in the `bfs' environment."
 (defun bfs-clean ()
   "Leave `bfs' environment and clean emacs state."
   (unless (window-minibuffer-p)
+    (setq bfs-environment-is-on-p nil)
     (remove-function after-delete-frame-functions 'bfs-done-if-frame-deleted)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
@@ -423,15 +430,21 @@ See `bfs-child' and `bfs-parent' commands."
   "Pop 3 panes frame to browse file system and preview files
 from `current-buffer'. "
   (interactive)
-  (window-configuration-to-register :bfs)
-  (setq bfs-buffer-list (buffer-list))
-  (let* ((parent default-directory)
-         (child-entry-initial (bfs-child-entry-initial (current-buffer))))
-    (bfs-display parent child-entry-initial))
-  (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
-  (add-hook 'isearch-update-post-hook 'bfs-preview-update)
-  (add-hook 'window-configuration-change-hook 'bfs-check-environment))
+  (cond
+   (bfs-environment-is-on-p
+    (when (eq (selected-frame) bfs-frame)
+      (bfs-quit)))
+   (t
+    (setq bfs-environment-is-on-p t)
+    (window-configuration-to-register :bfs)
+    (setq bfs-buffer-list (buffer-list))
+    (let* ((parent default-directory)
+           (child-entry-initial (bfs-child-entry-initial (current-buffer))))
+      (bfs-display parent child-entry-initial))
     (add-function :before after-delete-frame-functions 'bfs-done-if-frame-deleted)
+    (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
+    (add-hook 'isearch-update-post-hook 'bfs-preview-update)
+    (add-hook 'window-configuration-change-hook 'bfs-check-environment))))
 
 (global-set-key (kbd "M-]") 'bfs)
 
