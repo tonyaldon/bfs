@@ -330,11 +330,8 @@ before entering in the `bfs' environment."
   (setq bfs-visited-file-buffers nil)
   (setq bfs-buffer-list nil))
 
-  "Leave `bfs-mode'.
-Clean environment.
-Kill bfs buffers.
-Put path of last visited file into the `kill-ring'."
 (defun bfs-clean ()
+  "Leave `bfs' environment and clean emacs state."
   (unless (window-minibuffer-p)
     (remove-function after-delete-frame-functions 'bfs-done-if-frame-deleted)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
