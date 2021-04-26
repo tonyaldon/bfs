@@ -189,6 +189,10 @@ of the directory PARENT and the cursor at CHILD entry."
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
 
+(defvar bfs-kill-buffer-eagerly t
+  "When t, kill opened buffer upon a new child entry file is previewed.
+When nil, opened buffers are killed when leaving `bfs' environment.")
+
 (defun bfs-preview (parent child-entry &optional first-time)
   "Preview file CHILD of PARENT.
 When FIRST-TIME is non-nil, set the window layout."
@@ -208,6 +212,8 @@ When FIRST-TIME is non-nil, set the window layout."
           (t (setq preview-window
                    (display-buffer (find-file-noselect child-entry-path) t))))
     (when preview-window
+      (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
+        (kill-buffer (pop bfs-visited-file-buffers)))
       (unless (-contains-p
                (-union bfs-buffer-list-before bfs-visited-file-buffers)
                (window-buffer preview-window))
