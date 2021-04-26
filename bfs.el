@@ -220,6 +220,11 @@ CHILD-ENTRY."
   (bfs-child parent child-entry)
   (bfs-preview parent child-entry))
 
+(defvar bfs-windows nil
+  "Plist that store bfs windows information.
+Used internally.
+Properties of this plist are: :parent, :child, :preview")
+
 (defvar bfs-frame nil
   "Frame where the bfs environment has been started.
 Used internally.")
@@ -235,10 +240,20 @@ CHILD-ENTRY arguments."
   (delete-other-windows)
   (bfs-parent parent)
   (bfs-child parent child-entry)
-  (display-buffer bfs-parent-buffer-name bfs-parent-window-parameters)
-  (display-buffer bfs-child-buffer-name bfs-child-window-parameters)
-  (bfs-preview parent child-entry t)
-  (setq bfs-frame (selected-frame)))
+  (setq bfs-frame (selected-frame))
+  (setq bfs-windows
+        (plist-put bfs-windows
+                   :parent (display-buffer
+                            bfs-parent-buffer-name
+                            bfs-parent-window-parameters)))
+  (setq bfs-windows
+        (plist-put bfs-windows
+                   :child (display-buffer
+                           bfs-child-buffer-name
+                           bfs-child-window-parameters)))
+  (setq bfs-windows
+        (plist-put bfs-windows
+                   :preview (bfs-preview parent child-entry t))))
 
 ;;; Find a file
 
@@ -346,6 +361,7 @@ before entering in the `bfs' environment."
     (kill-new (f-join default-directory (bfs-child-entry)))
     (setq bfs-backward-last-visited nil)
     (setq bfs-frame nil)
+    (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
