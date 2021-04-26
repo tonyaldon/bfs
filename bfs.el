@@ -267,64 +267,71 @@ CHILD-ENTRY arguments."
 
 ;;; Leave bfs
 
-(defun bfs-preview-buffer-does-not-match-child-entry (preview-buffer-name)
-  "Return t if PREVIEW-BUFFER-NAME buffer in the bfs preview window
-doesn't match with the child entry."
-  (let ((child-entry-path
-         (with-current-buffer bfs-child-buffer-name
-           (f-join default-directory (bfs-child-entry))))
-        preview-major-mode preview-directory preview-bfn)
-    (with-current-buffer preview-buffer-name
-      (setq preview-major-mode major-mode)
-      (setq preview-directory default-directory)
-      (setq preview-bfn (buffer-file-name)))
-    (cond ((equal preview-major-mode 'dired-mode)
-           (not (f-equal-p child-entry-path preview-directory)))
-          (preview-bfn
-           (not (f-equal-p child-entry-path preview-bfn)))
-          (t t))))
+(defun bfs-child-entry-path ()
+  "Return file path corresponding to the current child entry.
+If `bfs-child-buffer-name' isn't lived return nil."
+  (when (buffer-live-p (get-buffer bfs-child-buffer-name))
+    (with-current-buffer bfs-child-buffer-name
+      (f-join default-directory (bfs-child-entry)))))
 
-(defun bfs-environment-is-corrupted-p ()
-  "Return t if the frame environment isn't a conform `bfs' environment.
-For instance, any command that change the frame layout lead to a
-corrupted `bfs' environment."
-  (let* ((window-buffer-name-list
-          (--map (buffer-name (window-buffer it)) (window-list)))
-         (bfs-child-buffer-is-not-displayed
-          (not (-contains-p window-buffer-name-list bfs-child-buffer-name)))
-         (bfs-parent-buffer-is-not-displayed
-          (not (-contains-p window-buffer-name-list bfs-parent-buffer-name)))
-         (wrong-amount-of-displayed-windows
-          (not (equal (length window-buffer-name-list) 3)))
-         (preview-buffer-name
-          (car (--remove (member it `(,bfs-child-buffer-name ,bfs-parent-buffer-name))
-                         window-buffer-name-list))))
-    (cond
-     ((window-minibuffer-p) nil)
-     ((not (eq (selected-frame) bfs-frame)) nil)
-     ((memq last-command '(bfs bfs-backward bfs-forward bfs-find-file)) nil)
-     ((or bfs-child-buffer-is-not-displayed
-          bfs-parent-buffer-is-not-displayed
-          wrong-amount-of-displayed-windows)
-      t)
-     ((bfs-preview-buffer-does-not-match-child-entry preview-buffer-name) t)
-     (t nil))
-    ))
+(defun bfs-preview-buffer-name ()
+  "Return the buffer-name of the preview window if lived.
+Return nil if preview window isn't lived.
+
+See `bfs-windows'."
+  (when (window-live-p (plist-get bfs-windows :preview))
+    (buffer-name (window-buffer (plist-get bfs-windows :preview)))))
+
+(defun bfs-preview-matches-child-p ()
+  "Return t if buffer of preview window matches the child entry."
+  (when-let* ((child-entry-path (bfs-child-entry-path))
+              (preview-buffer-name (bfs-preview-buffer-name))
+              (preview-file-path
+               (with-current-buffer preview-buffer-name
+                 (if (equal major-mode 'dired-mode)
+                     default-directory
+                   (buffer-file-name)))))
+    (f-equal-p preview-file-path child-entry-path)))
+
+(defun bfs-valid-layout-p ()
+  "Return t if the window layout in `bfs-frame' frame
+corresponds to the `bfs' environment layout."
+  (let ((parent-win (plist-get bfs-windows :parent))
+        (child-win (plist-get bfs-windows :child))
+        (preview-win (plist-get bfs-windows :preview)))
+    (when (-all-p 'window-live-p `(,parent-win ,child-win ,preview-win))
+      (and (equal (length (window-list)) 3)
+           (string= (buffer-name (window-buffer (window-in-direction 'right parent-win)))
+                    bfs-child-buffer-name)
+           (string= (buffer-name (window-buffer (window-in-direction 'right preview-win t nil t)))
+                    bfs-parent-buffer-name)))))
 
 (defun bfs-check-environment ()
-  "Leave `bfs' environment if it is corrupted.
-Intended to be used in `window-configuration-change-hook'.
-This ensure not to end in an inconsistent state.
+  "Leave `bfs' environment if it isn't valid.
 
-When you are in `bfs' environment you Browse the File System.
-When you have the insight you want on the file system, you
-leave `bfs'environment.  If you want to modify your File System,
-use `dired' and any shell in your favorite terminal emulator.
+We use `bfs-check-environment' in `window-configuration-change-hook'.
+This ensure not to end in an inconsistent (unwanted) emacs state
+after running any command that invalidate `bfs' environment.
 
-See `bfs-environment-is-corrupted-p'."
-  (when (bfs-environment-is-corrupted-p)
+For instance, your `bfs' environment stops to be valid:
+1. when you switch to a buffer not attached to a file,
+2. when you modify the layout deleting or rotating windows,
+3. when you run any command that makes the previewed buffer
+   no longer match the child entry.
+
+See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
+  (cond
+   ((or (window-minibuffer-p)
+        (not (eq (selected-frame) bfs-frame))
+        (memq last-command '(bfs bfs-backward bfs-forward bfs-find-file)))
+    nil) ;; do nothing
+   ((or (not (bfs-valid-layout-p))
+        (not (bfs-preview-matches-child-p)))
     (bfs-clean)
-    (delete-other-windows)))
+    (when (window-parameter (selected-window) 'window-side)
+      (other-window 1))
+    (delete-other-windows))
+   (t nil)))
 
 (defun bfs-done-if-frame-deleted (frame)
   "Clean `bfs' environment if the frame that was running it has been deleted.
