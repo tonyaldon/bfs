@@ -197,11 +197,21 @@ When FIRST-TIME is non-nil, set the window layout."
   ;;       Take care, if done wrong this can slowdown (freeze) emacs.
   ;;       You can profile emacs if you need with: profiler-start
   ;;       and profiler-report
-  (let ((preview-window
-         (display-buffer
-          (find-file-noselect (f-join parent child-entry))
-          (if first-time bfs-preview-window-parameters t))))
-    (push (window-buffer preview-window) bfs-visited-file-buffers)
+
+  (let ((child-entry-path (f-join parent child-entry))
+        preview-window)
+    (cond ((bfs-preview-matches-child-p) t)
+          (first-time
+           (setq preview-window
+                 (display-buffer (find-file-noselect child-entry-path)
+                                 bfs-preview-window-parameters)))
+          (t (setq preview-window
+                   (display-buffer (find-file-noselect child-entry-path) t))))
+    (when preview-window
+      (unless (-contains-p
+               (-union bfs-buffer-list-before bfs-visited-file-buffers)
+               (window-buffer preview-window))
+        (push (window-buffer preview-window) bfs-visited-file-buffers)))
     preview-window))
 
 (defun bfs-preview-update ()
