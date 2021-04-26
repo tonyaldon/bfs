@@ -344,18 +344,18 @@ Intended to be added to `after-delete-frame-functions'."
 during a `bfs' session.
 Used internally.")
 
-(defvar bfs-buffer-list nil
+(defvar bfs-buffer-list-before nil
   "List of all live buffers when entering in the `bfs' environment.
 Used internally.")
 
 (defun bfs-kill-visited-file-buffers ()
   "Kill the buffers used to preview files with `bfs-preview'.
-This doesn't kill buffers in `bfs-buffer-list' that was lived
+This doesn't kill buffers in `bfs-buffer-list-before' that was lived
 before entering in the `bfs' environment."
-  (-each (-difference bfs-visited-file-buffers bfs-buffer-list)
+  (-each (-difference bfs-visited-file-buffers bfs-buffer-list-before)
     'kill-buffer)
   (setq bfs-visited-file-buffers nil)
-  (setq bfs-buffer-list nil))
+  (setq bfs-buffer-list-before nil))
 
 (defun bfs-clean ()
   "Leave `bfs' environment and clean emacs state."
@@ -477,7 +477,7 @@ from `current-buffer'. "
    (t
     (setq bfs-environment-is-on-p t)
     (window-configuration-to-register :bfs)
-    (setq bfs-buffer-list (buffer-list))
+    (setq bfs-buffer-list-before (buffer-list))
     (let* ((parent default-directory)
            (child-entry-initial (bfs-child-entry-initial (current-buffer))))
       (bfs-display parent child-entry-initial))
