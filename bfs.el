@@ -314,9 +314,17 @@ See `bfs-windows'."
 corresponds to the `bfs' environment layout."
   (let ((parent-win (plist-get bfs-windows :parent))
         (child-win (plist-get bfs-windows :child))
-        (preview-win (plist-get bfs-windows :preview)))
+        (preview-win (plist-get bfs-windows :preview))
+        (normal-window-list
+         ;; we want the bfs layout to be valid when either `transient' or
+         ;; `hydra' (when using lv-message, see `hydra-hint-display-type'
+         ;; and `lv')  package pops up a window.  So we don't take those
+         ;; popped up windows into account to validate the layout.
+         (--remove (member (buffer-name (window-buffer it))
+                           '(" *transient*" " *LV*"))
+                   (window-list))))
     (when (-all-p 'window-live-p `(,parent-win ,child-win ,preview-win))
-      (and (equal (length (window-list)) 3)
+      (and (equal (length normal-window-list) 3)
            (string= (buffer-name (window-buffer (window-in-direction 'right parent-win)))
                     bfs-child-buffer-name)
            (string= (buffer-name (window-buffer (window-in-direction 'right preview-win t nil t)))
