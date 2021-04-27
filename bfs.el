@@ -273,9 +273,10 @@ CHILD-ENTRY arguments."
 
 ;;; Find a file
 
-(defun bfs-find-file (filename &optional wildcards)
+(defun bfs-find-file (filename)
   "Find a file with your completion framework and update `bfs' environment."
-  (interactive (find-file-read-args "Find file: " t))
+  (interactive
+   (list (read-file-name "Find file:" nil default-directory t)))
   (cond ((f-root-p filename)
          (bfs-update "/" "/"))
         (t
