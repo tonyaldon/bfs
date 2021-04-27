@@ -123,20 +123,29 @@ If not, leave bfs and visit child-entry file."
   "Return the current parent entry."
   (f-filename default-directory))
 
-(defun bfs-first-listed (parent)
-  "Return the first listed file of PARENT directory."
-  (car (s-lines
-        (shell-command-to-string
-         (s-concat "ls -Ap --group-directories-first " parent)))))
+(defun bfs-first-listed (dir)
+  "Return the first readable file/directory of DIR directory.
+Return nil if none are readable.
+Return an empty string if DIR directory is empty.
+
+See `file-readable-p'."
+  (--first (file-readable-p (f-join dir it))
+           (-> (s-concat "ls -Ap --group-directories-first " dir)
+               (shell-command-to-string)
+               (s-chomp)
+               (s-lines))))
 
 (defun bfs-child-entry-initial (buffer)
   "Return the file name of BUFFER.
-If BUFFER is not attached to a file, return the first listed file
-of `default-directory'."
+Return nil if we can't determine a \"suitable\" file name for BUFFER.
+
+See `bfs-first-listed'."
   (with-current-buffer buffer
-    (if-let (bfn (or (buffer-file-name) (dired-file-name-at-point)))
-        (f-filename bfn)
-      (bfs-first-listed default-directory))))
+    (cond ((buffer-file-name) (f-filename (buffer-file-name)))
+          ((and (dired-file-name-at-point)
+                (file-readable-p (dired-file-name-at-point)))
+           (f-filename (dired-file-name-at-point)))
+          (t (bfs-first-listed default-directory)))))
 
 (defun bfs-goto-entry (entry)
   "Move the cursor to the line ENTRY."
@@ -500,16 +509,18 @@ from `current-buffer'. "
     (when (eq (selected-frame) bfs-frame)
       (bfs-quit)))
    (t
-    (setq bfs-environment-is-on-p t)
-    (window-configuration-to-register :bfs)
-    (setq bfs-buffer-list-before (buffer-list))
     (let* ((parent default-directory)
            (child-entry-initial (bfs-child-entry-initial (current-buffer))))
-      (bfs-display parent child-entry-initial))
-    (add-function :before after-delete-frame-functions 'bfs-done-if-frame-deleted)
-    (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
-    (add-hook 'isearch-update-post-hook 'bfs-preview-update)
-    (add-hook 'window-configuration-change-hook 'bfs-check-environment))))
+      (if  (not child-entry-initial)
+          (message "Files are not readable in directory: %s" parent)
+        (setq bfs-environment-is-on-p t)
+        (window-configuration-to-register :bfs)
+        (setq bfs-buffer-list-before (buffer-list))
+        (bfs-display parent child-entry-initial)
+        (add-function :before after-delete-frame-functions 'bfs-done-if-frame-deleted)
+        (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
+        (add-hook 'isearch-update-post-hook 'bfs-preview-update)
+        (add-hook 'window-configuration-change-hook 'bfs-check-environment))))))
 
 (global-set-key (kbd "M-]") 'bfs)
 
