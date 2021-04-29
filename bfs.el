@@ -531,8 +531,33 @@ See `bfs-child' and `bfs-parent' commands."
 ;;; bfs (main entry)
 
 (defun bfs ()
-  "Pop 3 panes frame to browse file system and preview files
-from `current-buffer'. "
+  "Start a `bfs' (Browse File System) environment in the `selected-frame'.
+
+This pops up a 3 panes (windows) layout that allow you to browse
+your file system and preview files.
+
+You can only have one `bfs' environment running at a time.
+
+When you are in the child window (the middle window), you can:
+- quit `bfs' environment with `bfs-quit',
+- preview files with `bfs-next' and `bfs-previous',
+- go up and down in the file system tree with `bfs-backward'
+  and `bfs-forward',
+- scroll the previewed file with `bfs-scroll-preview-down-half-window',
+  `bfs-scroll-preview-up-half-window',
+- \"jump\" to any file in your file system with `bfs-find-file', this
+  automatically update `bfs' environment.
+
+In the child window, when you move the cursor with `isearch-forward'
+or `isearch-backward', this will automatically preview the file you
+move to.
+
+Any command that invalidates `bfs' environment will cause to leave
+`bfs' environment.  See `bfs-check-environment'.
+
+In the child window, the local keymap in use is `bfs-child-mode-map':
+
+\\{bfs-child-mode-map}."
   (interactive)
   (cond
    (bfs-environment-is-on-p
