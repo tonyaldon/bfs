@@ -177,6 +177,12 @@ See `bfs-first-readable-file'."
   "When t, kill opened buffer upon a new child entry file is previewed.
 When nil, opened buffers are killed when leaving `bfs' environment.")
 
+(defvar bfs-ignored-extensions '("mkv" "iso" "mp4" "jpg" "png")
+  "Don't preview files with those extensions.")
+
+(defvar bfs-max-size large-file-warning-threshold
+  "Don't preview files larger than this size.")
+
 (defvar bfs-ls-cli "ls -Ap --group-directories-first"
   "The ls command line with the flags used.
 
@@ -246,15 +252,15 @@ of the directory PARENT and the cursor at CHILD entry."
 (defun bfs-preview (parent child-entry &optional first-time)
   "Preview file CHILD of PARENT.
 When FIRST-TIME is non-nil, set the window layout."
-  ;; TODO: a way to not try to display with specific extension
-  ;;       like "mp4", "mkv"... and the files that are too huge.
-  ;;       Take care, if done wrong this can slowdown (freeze) emacs.
-  ;;       You can profile emacs if you need with: profiler-start
-  ;;       and profiler-report
-
   (let ((child-entry-path (f-join parent child-entry))
         preview-window)
-    (cond ((bfs-preview-matches-child-p) t)
+    (cond ((bfs-preview-matches-child-p) nil) ; do nothing
+          ((member (file-name-extension child-entry)
+                   bfs-ignored-extensions)
+           nil) ; do nothing
+          ((> (file-attribute-size (file-attributes child-entry-path))
+              bfs-max-size)
+           nil) ; do nothing
           (first-time
            (setq preview-window
                  (display-buffer (find-file-noselect child-entry-path)
