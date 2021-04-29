@@ -6,31 +6,31 @@
 
 ;;; Movements
 
-(defvar bfs-backward-last-visited nil
+(defvar bfs-backward-visited nil
   "Alist of (PARENT . CHILD-ENTRY) that have been visited.
 The cons (PARENT . CHILD-ENTRY) is added each time we use
 `bfs-backward'.  PARENT must be uniq.  This allow `bfs-forward' to
-lookup `bfs-backward-last-visited' and make a better choice of
+lookup `bfs-backward-visited' and make a better choice of
 the child-entry we want the cursor to be, given a PARENT we
 want to visite with a \"bfs forward movement\".")
 
-(defun bfs-backward-has-been-visited (parent)
-  "Return child-entry from `bfs-backward-last-visited' if (PARENT . child-entry)
-is found in `bfs-backward-last-visited'.
+(defun bfs-get-backward-visited (parent)
+  "Return child-entry from `bfs-backward-visited' if (PARENT . child-entry)
+is found in `bfs-backward-visited'.
 Return nil if not."
   (cdr (--first (f-equal-p (car it) parent)
-                bfs-backward-last-visited)))
+                bfs-backward-visited)))
 
-(defun bfs-backward-update-visited (parent child-entry)
-  "Add (PARENT . CHILD-ENTRY) to `bfs-backward-last-visited' conditionally."
+(defun bfs-update-backward-visited (parent child-entry)
+  "Add (PARENT . CHILD-ENTRY) to `bfs-backward-visited' conditionally."
   (let ((child-entry-path (f-join parent child-entry)))
     (unless (or (and (f-directory-p child-entry-path)
                      (not (file-accessible-directory-p child-entry-path)))
                 (not (file-readable-p child-entry-path)))
-      (setq bfs-backward-last-visited
+      (setq bfs-backward-visited
             (cons `(,parent . ,child-entry)
                   (--remove (f-equal-p parent (car it))
-                            bfs-backward-last-visited))))))
+                            bfs-backward-visited))))))
 
 (defun bfs-previous ()
   "Preview previous file."
@@ -50,7 +50,7 @@ Return nil if not."
 In other words, go up by one node in the file system tree."
   (interactive)
   (unless (f-root-p default-directory)
-    (bfs-backward-update-visited default-directory (bfs-child-entry))
+    (bfs-update-backward-visited default-directory (bfs-child-entry))
     (bfs-update (f-parent default-directory) (bfs-parent-entry))))
 
 (defun bfs-forward ()
@@ -68,7 +68,7 @@ environment and visit that file."
            (message "Permission denied: %s" child-entry-path))
           ((f-directory-p child-entry-path)
            (if-let (new-child-entry
-                    (or (bfs-backward-has-been-visited new-parent)
+                    (or (bfs-get-backward-visited new-parent)
                         (bfs-first-readable-file new-parent)))
                (if (s-blank-p new-child-entry)
                    (progn
@@ -425,7 +425,7 @@ before entering in the `bfs' environment."
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
-    (setq bfs-backward-last-visited nil)
+    (setq bfs-backward-visited nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
