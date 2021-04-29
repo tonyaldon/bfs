@@ -133,11 +133,13 @@ environment and visit that file."
 
 (defun bfs-child-entry ()
   "Return the current child entry."
-  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+  (with-current-buffer bfs-child-buffer-name
+    (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
 
 (defun bfs-parent-entry ()
   "Return the current parent entry."
-  (f-filename default-directory))
+  (with-current-buffer bfs-child-buffer-name
+    (f-filename default-directory)))
 
 (defun bfs-first-readable-file (dir)
   "Return the first readable file/directory of DIR directory.
