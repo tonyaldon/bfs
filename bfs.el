@@ -53,19 +53,29 @@ In other words, go up by one node in the file system tree."
     (bfs-update (f-parent default-directory) (bfs-parent-entry))))
 
 (defun bfs-forward ()
-  "Browse current child entry if it is a directory.
-If not, leave bfs and visit child-entry file."
+  "Update `bfs' environment making child entry the parent entry.
+In other words, go down by one node in the file system tree.
+
+If child entry (is not a directory) and is a readable file, leave `bfs'
+environment and visit that file."
   (interactive)
   (let* ((child-entry (bfs-child-entry))
          (child-entry-path (f-join default-directory child-entry))
-         new-parent new-child-entry)
-    (cond ((f-directory-p child-entry)
-           (setq new-parent child-entry-path)
-           (setq new-child-entry
-                 (or (bfs-backward-has-been-visited new-parent)
-                     (bfs-first-listed new-parent)))
-           (message "%s" new-child-entry)
-           (bfs-update new-parent new-child-entry))
+         (new-parent child-entry-path))
+    (cond ((and (f-directory-p child-entry-path)
+                (not (file-accessible-directory-p child-entry-path)))
+           (message "Permission denied: %s" child-entry-path))
+          ((f-directory-p child-entry-path)
+           (if-let (new-child-entry
+                    (or (bfs-backward-has-been-visited new-parent)
+                        (bfs-first-readable-file new-parent)))
+               (if (s-blank-p new-child-entry)
+                   (progn
+                     (bfs-clean)
+                     (delete-other-windows)
+                     (dired child-entry-path))
+                 (bfs-update new-parent new-child-entry))
+             (message "Files are not readable in directory: %s" child-entry-path)))
           (t
            (bfs-clean)
            (delete-other-windows)
@@ -126,7 +136,7 @@ If not, leave bfs and visit child-entry file."
   "Return the current parent entry."
   (f-filename default-directory))
 
-(defun bfs-first-listed (dir)
+(defun bfs-first-readable-file (dir)
   "Return the first readable file/directory of DIR directory.
 Return nil if none are readable.
 Return an empty string if DIR directory is empty.
@@ -142,13 +152,13 @@ See `file-readable-p'."
   "Return the file name of BUFFER.
 Return nil if we can't determine a \"suitable\" file name for BUFFER.
 
-See `bfs-first-listed'."
+See `bfs-first-readable-file'."
   (with-current-buffer buffer
     (cond ((buffer-file-name) (f-filename (buffer-file-name)))
           ((and (dired-file-name-at-point)
                 (file-readable-p (dired-file-name-at-point)))
            (f-filename (dired-file-name-at-point)))
-          (t (bfs-first-listed default-directory)))))
+          (t (bfs-first-readable-file default-directory)))))
 
 (defun bfs-goto-entry (entry)
   "Move the cursor to the line ENTRY."
