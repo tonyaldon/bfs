@@ -2,6 +2,7 @@
 
 (require 's)
 (require 'f)
+(require 'dash)
 
 ;;; Movements
 
