@@ -148,7 +148,7 @@ Return an empty string if DIR directory is empty.
 
 See `file-readable-p'."
   (--first (file-readable-p (f-join dir it))
-           (-> (s-concat "ls -Ap --group-directories-first " dir)
+           (-> (s-join " " (list bfs-ls-cli dir))
                (shell-command-to-string)
                (s-chomp)
                (s-lines))))
@@ -172,6 +172,14 @@ See `bfs-first-readable-file'."
   (beginning-of-line))
 
 ;;; Create, display and update buffers
+
+(defvar bfs-ls-cli "ls -Ap --group-directories-first"
+  "The ls command line with the flags used.
+
+The -p flag of ls append a / to the listed directories.
+We use it to fontify the directories in `bfs-child-buffer-name'
+and `bfs-parent-buffer-name'.  See `bfs-re-dir' and
+`bfs-font-lock-keywords'.")
 
 (defvar bfs-parent-buffer-name "*bfs-parent*"
   "Parent buffer name.")
@@ -199,8 +207,7 @@ of the directory containing PARENT directory."
     (read-only-mode -1)
     (erase-buffer)
     (cond ((f-root-p parent) (insert "/") (bfs-goto-entry "/"))
-          (t (-> "ls -Ap --group-directories-first "
-                 (s-concat (f-parent parent))
+          (t (-> (s-join " " (list bfs-ls-cli (f-parent parent)))
                  shell-command-to-string
                  insert)
              (bfs-goto-entry (f-filename parent))))
@@ -212,7 +219,7 @@ of the directory PARENT and the cursor at CHILD entry."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
-    (-> (s-concat "ls -Ap --group-directories-first " parent)
+    (-> (s-join " " (list bfs-ls-cli parent))
         shell-command-to-string
         insert)
     (bfs-goto-entry child-entry)
