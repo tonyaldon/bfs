@@ -259,8 +259,7 @@ cursor has moved to using \"isearch\" commands in
   (bfs-preview default-directory (bfs-child-entry)))
 
 (defun bfs-update (parent child-entry)
-  "Update \"bfs\" buffers according to the argument PARENT and
-CHILD-ENTRY."
+  "Update `bfs' environment according to PARENT and CHILD-ENTRY."
   (let ((child-entry-path (f-join parent child-entry)))
     (cond ((and (f-directory-p child-entry-path)
                 (not (file-accessible-directory-p child-entry-path)))
@@ -274,12 +273,12 @@ CHILD-ENTRY."
            (bfs-preview parent child-entry)))))
 
 (defvar bfs-windows nil
-  "Plist that store bfs windows information.
+  "Plist that store `bfs' windows information.
 Used internally.
 Properties of this plist are: :parent, :child, :preview")
 
 (defvar bfs-frame nil
-  "Frame where the bfs environment has been started.
+  "Frame where the `bfs' environment has been started.
 Used internally.")
 
 (defvar bfs-environment-is-on-p nil
@@ -288,7 +287,7 @@ in the frame `bfs-frame'.
 Used internally.")
 
 (defun bfs-display (parent child-entry)
-  "Display \"bfs\" buffers in a 3 panes layout for PARENT and
+  "Display `bfs' buffers in a 3 panes layout for PARENT and
 CHILD-ENTRY arguments.
 Intended to be called only once in `bfs'."
   (delete-other-windows)
