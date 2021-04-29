@@ -173,6 +173,10 @@ See `bfs-first-readable-file'."
 
 ;;; Create, display and update buffers
 
+(defvar bfs-kill-buffer-eagerly nil
+  "When t, kill opened buffer upon a new child entry file is previewed.
+When nil, opened buffers are killed when leaving `bfs' environment.")
+
 (defvar bfs-ls-cli "ls -Ap --group-directories-first"
   "The ls command line with the flags used.
 
@@ -200,6 +204,20 @@ and `bfs-parent-buffer-name'.  See `bfs-re-dir' and
     (direction . right)
     (window-width . 0.6)))
 
+(defvar bfs-frame nil
+  "Frame where the `bfs' environment has been started.
+Used internally.")
+
+(defvar bfs-windows nil
+  "Plist that store `bfs' windows information.
+Used internally.
+Properties of this plist are: :parent, :child, :preview")
+
+(defvar bfs-environment-is-on-p nil
+  "t means that `bfs' environment has been turned on
+in the frame `bfs-frame'.
+Used internally.")
+
 (defun bfs-parent (parent)
   "Produce `bfs-parent-buffer-name' buffer with the listing
 of the directory containing PARENT directory."
@@ -224,10 +242,6 @@ of the directory PARENT and the cursor at CHILD entry."
         insert)
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
-
-(defvar bfs-kill-buffer-eagerly nil
-  "When t, kill opened buffer upon a new child entry file is previewed.
-When nil, opened buffers are killed when leaving `bfs' environment.")
 
 (defun bfs-preview (parent child-entry &optional first-time)
   "Preview file CHILD of PARENT.
@@ -278,20 +292,6 @@ cursor has moved to using \"isearch\" commands in
              (bfs-parent parent)
              (bfs-child parent child-entry))
            (bfs-preview parent child-entry)))))
-
-(defvar bfs-windows nil
-  "Plist that store `bfs' windows information.
-Used internally.
-Properties of this plist are: :parent, :child, :preview")
-
-(defvar bfs-frame nil
-  "Frame where the `bfs' environment has been started.
-Used internally.")
-
-(defvar bfs-environment-is-on-p nil
-  "t means that `bfs' environment has been turned on
-in the frame `bfs-frame'.
-Used internally.")
 
 (defun bfs-display (parent child-entry)
   "Display `bfs' buffers in a 3 panes layout for PARENT and
