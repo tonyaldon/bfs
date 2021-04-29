@@ -256,9 +256,17 @@ cursor has moved to using \"isearch\" commands in
 (defun bfs-update (parent child-entry)
   "Update \"bfs\" buffers according to the argument PARENT and
 CHILD-ENTRY."
-  (bfs-parent parent)
-  (bfs-child parent child-entry)
-  (bfs-preview parent child-entry))
+  (let ((child-entry-path (f-join parent child-entry)))
+    (cond ((and (f-directory-p child-entry-path)
+                (not (file-accessible-directory-p child-entry-path)))
+           (message "Permission denied: %s" child-entry-path))
+          ((not (file-readable-p child-entry-path))
+           (message "File is not readable: %s" child-entry-path))
+          (t
+           (let ((inhibit-message t))
+             (bfs-parent parent)
+             (bfs-child parent child-entry))
+           (bfs-preview parent child-entry)))))
 
 (defvar bfs-windows nil
   "Plist that store bfs windows information.
