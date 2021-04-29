@@ -290,6 +290,8 @@ Used internally.")
   "Display `bfs' buffers in a 3 panes layout for PARENT and
 CHILD-ENTRY arguments.
 Intended to be called only once in `bfs'."
+  (when (window-parameter (selected-window) 'window-side)
+    (other-window 1))
   (delete-other-windows)
   (bfs-parent parent)
   (bfs-child parent child-entry)
