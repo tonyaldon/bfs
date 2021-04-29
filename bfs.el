@@ -41,13 +41,12 @@ Return nil if not."
   (bfs-preview default-directory (bfs-child-entry)))
 
 (defun bfs-backward ()
-  "Browse the parent directory."
+  "Update `bfs' environment making parent entry the child entry.
+In other words, go up by one node in the file system tree."
   (interactive)
-  (let ((new-parent
-         (if (f-root-p default-directory) "/" (f-parent default-directory)))
-        (new-child-entry (bfs-parent-entry)))
+  (unless (f-root-p default-directory)
     (bfs-backward-update-visited default-directory (bfs-child-entry))
-    (bfs-update new-parent new-child-entry)))
+    (bfs-update (f-parent default-directory) (bfs-parent-entry))))
 
 (defun bfs-forward ()
   "Browse current child entry if it is a directory.
