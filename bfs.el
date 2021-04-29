@@ -21,11 +21,15 @@ Return nil if not."
                 bfs-backward-last-visited)))
 
 (defun bfs-backward-update-visited (parent child-entry)
-  "Add (PARENT . CHILD-ENTRY) to `bfs-backward-last-visited'."
-  (setq bfs-backward-last-visited
-        (cons (cons parent child-entry)
-              (--remove (f-equal-p parent (car it))
-                        bfs-backward-last-visited))))
+  "Add (PARENT . CHILD-ENTRY) to `bfs-backward-last-visited' conditionally."
+  (let ((child-entry-path (f-join parent child-entry)))
+    (unless (or (and (f-directory-p child-entry-path)
+                     (not (file-accessible-directory-p child-entry-path)))
+                (not (file-readable-p child-entry-path)))
+      (setq bfs-backward-last-visited
+            (cons `(,parent . ,child-entry)
+                  (--remove (f-equal-p parent (car it))
+                            bfs-backward-last-visited))))))
 
 (defun bfs-previous ()
   "Preview previous file."
