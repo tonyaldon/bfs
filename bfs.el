@@ -26,7 +26,7 @@ Return nil if not."
   (let ((child-entry-path (f-join parent child-entry)))
     (unless (or (and (f-directory-p child-entry-path)
                      (not (file-accessible-directory-p child-entry-path)))
-                (not (file-readable-p child-entry-path)))
+                (not (bfs-file-readable-p child-entry-path)))
       (setq bfs-backward-visited
             (cons `(,parent . ,child-entry)
                   (--remove (f-equal-p parent (car it))
@@ -76,7 +76,9 @@ environment and visit that file."
                      (delete-other-windows)
                      (dired child-entry-path))
                  (bfs-update new-parent new-child-entry))
-             (message "Files are not readable in directory: %s" child-entry-path)))
+             (message (s-concat "Files are not readable, or are too large, "
+                                "or have discarded extensions, in directory: %s")
+                      child-entry-path)))
           (t
            (let (child-entry-buffer)
              (condition-case err
@@ -141,13 +143,25 @@ environment and visit that file."
   (with-current-buffer bfs-child-buffer-name
     (f-filename default-directory)))
 
-(defun bfs-first-readable-file (dir)
-  "Return the first readable file/directory of DIR directory.
-Return nil if none are readable.
-Return an empty string if DIR directory is empty.
+(defun bfs-file-readable-p (file)
+  "Return t if FILE is a readable satisfaying:
+- its extension doesn't belong to `bfs-ignored-extensions',
+- and its size is less than `bfs-max-size'.
 
 See `file-readable-p'."
-  (--first (file-readable-p (f-join dir it))
+  (and (file-readable-p file)
+       (not (member (file-name-extension file)
+                    bfs-ignored-extensions))
+       (< (file-attribute-size (file-attributes file))
+          bfs-max-size)))
+
+(defun bfs-first-readable-file (dir)
+  "Return the first file/directory of DIR directory satisfaying
+`bfs-file-readable-p'.
+
+Return nil if none are found.
+Return an empty string if DIR directory is empty."
+  (--first (bfs-file-readable-p (f-join dir it))
            (-> (s-join " " (list bfs-ls-cli dir))
                (shell-command-to-string)
                (s-chomp)
@@ -161,7 +175,7 @@ See `bfs-first-readable-file'."
   (with-current-buffer buffer
     (cond ((buffer-file-name) (f-filename (buffer-file-name)))
           ((and (dired-file-name-at-point)
-                (file-readable-p (dired-file-name-at-point)))
+                (bfs-file-readable-p (dired-file-name-at-point)))
            (f-filename (dired-file-name-at-point)))
           (t (bfs-first-readable-file default-directory)))))
 
@@ -291,8 +305,10 @@ cursor has moved to using \"isearch\" commands in
     (cond ((and (f-directory-p child-entry-path)
                 (not (file-accessible-directory-p child-entry-path)))
            (message "Permission denied: %s" child-entry-path))
-          ((not (file-readable-p child-entry-path))
-           (message "File is not readable: %s" child-entry-path))
+          ((not (bfs-file-readable-p child-entry-path))
+           (message (s-concat "File is not readable, or are too large, "
+                              "or have discarded extensions: %s")
+                    child-entry-path))
           (t
            (let ((inhibit-message t))
              (bfs-parent parent)
@@ -580,7 +596,9 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
     (let* ((parent default-directory)
            (child-entry-initial (bfs-child-entry-initial (current-buffer))))
       (if  (not child-entry-initial)
-          (message "Files are not readable in directory: %s" parent)
+          (message (s-concat "Files are not readable, or are too large, "
+                             "or have discarded extensions, in directory: %s")
+                   parent)
         (setq bfs-environment-is-on-p t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
