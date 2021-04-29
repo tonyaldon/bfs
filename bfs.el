@@ -395,7 +395,7 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
     (delete-other-windows))
    (t nil)))
 
-(defun bfs-done-if-frame-deleted (frame)
+(defun bfs-clean-if-frame-deleted (frame)
   "Clean `bfs' environment if the frame that was running it has been deleted.
 Intended to be added to `after-delete-frame-functions'."
   (unless (frame-live-p bfs-frame)
@@ -423,7 +423,7 @@ before entering in the `bfs' environment."
   "Leave `bfs' environment and clean emacs state."
   (unless (window-minibuffer-p)
     (setq bfs-environment-is-on-p nil)
-    (remove-function after-delete-frame-functions 'bfs-done-if-frame-deleted)
+    (remove-function after-delete-frame-functions 'bfs-clean-if-frame-deleted)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
@@ -545,7 +545,7 @@ from `current-buffer'. "
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
         (bfs-display parent child-entry-initial)
-        (add-function :before after-delete-frame-functions 'bfs-done-if-frame-deleted)
+        (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
         (add-hook 'isearch-update-post-hook 'bfs-preview-update)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment))))))
