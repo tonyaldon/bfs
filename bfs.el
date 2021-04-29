@@ -214,7 +214,7 @@ of the directory PARENT and the cursor at CHILD entry."
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
 
-(defvar bfs-kill-buffer-eagerly t
+(defvar bfs-kill-buffer-eagerly nil
   "When t, kill opened buffer upon a new child entry file is previewed.
 When nil, opened buffers are killed when leaving `bfs' environment.")
 
