@@ -77,12 +77,14 @@ environment and visit that file."
                  (bfs-update new-parent new-child-entry))
              (message "Files are not readable in directory: %s" child-entry-path)))
           (t
-           (bfs-clean)
-           (delete-other-windows)
-           ;; FIXME: when trying to open a file I'm not
-           ;; permitted. For instance, when I'm not the root user
-           ;; and the file has this permission: drwx------
-           (find-file child-entry-path)))))
+           (let (child-entry-buffer)
+             (condition-case err
+                 (setq child-entry-buffer (find-file-noselect child-entry-path))
+               (file-error (message "%s" (error-message-string err))))
+             (when child-entry-buffer
+               (bfs-clean)
+               (delete-other-windows)
+               (find-file child-entry-path)))))))
 
 ;;; Scrolling
 
