@@ -424,9 +424,9 @@ before entering in the `bfs' environment."
   (unless (window-minibuffer-p)
     (setq bfs-environment-is-on-p nil)
     (remove-function after-delete-frame-functions 'bfs-clean-if-frame-deleted)
+    (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
-    (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (kill-new (f-join default-directory (bfs-child-entry)))
     (setq bfs-backward-visited nil)
     (setq bfs-frame nil)
@@ -546,9 +546,9 @@ from `current-buffer'. "
         (setq bfs-buffer-list-before (buffer-list))
         (bfs-display parent child-entry-initial)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
+        (add-hook 'window-configuration-change-hook 'bfs-check-environment)
         (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
-        (add-hook 'isearch-update-post-hook 'bfs-preview-update)
-        (add-hook 'window-configuration-change-hook 'bfs-check-environment))))))
+        (add-hook 'isearch-update-post-hook 'bfs-preview-update))))))
 
 (global-set-key (kbd "M-]") 'bfs)
 
