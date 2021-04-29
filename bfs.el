@@ -193,15 +193,16 @@ See `bfs-first-readable-file'."
     (window-width . 0.6)))
 
 (defun bfs-parent (parent)
-  "Produce *bfs-parent* buffer with the listing
+  "Produce `bfs-parent-buffer-name' buffer with the listing
 of the directory containing PARENT directory."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
     (cond ((f-root-p parent) (insert "/") (bfs-goto-entry "/"))
-          (t (insert (shell-command-to-string
-                      (s-concat "ls -Ap --group-directories-first "
-                                (f-parent parent))))
+          (t (-> "ls -Ap --group-directories-first "
+                 (s-concat (f-parent parent))
+                 shell-command-to-string
+                 insert)
              (bfs-goto-entry (f-filename parent))))
     (bfs-mode parent)))
 
@@ -211,8 +212,9 @@ of the directory PARENT and the cursor at CHILD entry."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
-    (insert (shell-command-to-string
-             (s-concat "ls -Ap --group-directories-first " parent)))
+    (-> (s-concat "ls -Ap --group-directories-first " parent)
+        shell-command-to-string
+        insert)
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
 
