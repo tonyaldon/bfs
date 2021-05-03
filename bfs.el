@@ -9,12 +9,9 @@
 ;;; Movements
 
 (defvar bfs-backward-visited nil
-  "Alist of (PARENT . CHILD-ENTRY) that have been visited.
-The cons (PARENT . CHILD-ENTRY) is added each time we use
-`bfs-backward'.  PARENT must be uniq.  This allow `bfs-forward' to
-lookup `bfs-backward-visited' and make a better choice of
-the child-entry we want the cursor to be, given a PARENT we
-want to visite with a \"bfs forward movement\".")
+  "List of child files that have been visited.  Child files are
+added uniquely to `bfs-backward-visited' only when we use
+`bfs-backward' command.  This allow `bfs-forward' to be smart.")
 
 (defun bfs-get-backward-visited (child)
   "Return the element of `bfs-backward-visited' which directory name match CHILD.
