@@ -268,21 +268,21 @@ of the directory PARENT and the cursor at CHILD entry."
 (defun bfs-preview (parent child-entry &optional first-time)
   "Preview file CHILD of PARENT.
 When FIRST-TIME is non-nil, set the window layout."
-  (let ((child-entry-path (f-join parent child-entry))
+  (let ((child (f-join parent child-entry))
         preview-window)
     (cond ((bfs-preview-matches-child-p) nil) ; do nothing
           ((member (file-name-extension child-entry)
                    bfs-ignored-extensions)
            nil) ; do nothing
-          ((> (file-attribute-size (file-attributes child-entry-path))
+          ((> (file-attribute-size (file-attributes child))
               bfs-max-size)
            nil) ; do nothing
           (first-time
            (setq preview-window
-                 (display-buffer (find-file-noselect child-entry-path)
+                 (display-buffer (find-file-noselect child)
                                  bfs-preview-window-parameters)))
           (t (setq preview-window
-                   (display-buffer (find-file-noselect child-entry-path) t))))
+                   (display-buffer (find-file-noselect child) t))))
     (when preview-window
       (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
         (kill-buffer (pop bfs-visited-file-buffers)))
