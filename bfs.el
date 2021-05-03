@@ -35,14 +35,14 @@ Return nil if not."
 (defun bfs-previous ()
   "Preview previous file."
   (interactive)
-  (unless (bobp) (previous-line))
+  (unless (bobp) (forward-line -1))
   (bfs-preview default-directory (bfs-child-entry)))
 
 (defun bfs-next ()
   "Preview next file."
   (interactive)
   (unless (= (line-number-at-pos) (1- (line-number-at-pos (point-max))))
-    (next-line))
+    (forward-line))
   (bfs-preview default-directory (bfs-child-entry)))
 
 (defun bfs-backward ()
@@ -181,7 +181,7 @@ See `bfs-first-readable-file'."
 
 (defun bfs-goto-entry (entry)
   "Move the cursor to the line ENTRY."
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (search-forward-regexp (s-concat "^" entry) nil t)
   (beginning-of-line))
 
@@ -476,9 +476,12 @@ before entering in the `bfs' environment."
 
 ;;; bfs-mode
 
+(defgroup bfs nil "Browsing File System." :group 'files)
+
 (defface bfs-directory
   '((t (:foreground "#458b74")))
-  "Face used for subdirectories.")
+  "Face used for subdirectories."
+  :group 'bfs)
 
 (defvar bfs-directory-face 'bfs-directory
   "Face name used for subdirectories.")
