@@ -240,7 +240,7 @@ Properties of this plist are: :parent, :child, :preview")
 in the frame `bfs-frame'.
 Used internally.")
 
-(defun bfs-parent (parent)
+(defun bfs-parent-buffer (parent)
   "Produce `bfs-parent-buffer-name' buffer with the listing
 of the directory containing PARENT directory."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
@@ -253,7 +253,7 @@ of the directory containing PARENT directory."
              (bfs-goto-entry (f-filename parent))))
     (bfs-mode parent)))
 
-(defun bfs-child (parent child-entry)
+(defun bfs-child-buffer (parent child-entry)
   "Produce `bfs-child-buffer-name' buffer with the listing
 of the directory PARENT and the cursor at CHILD entry."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
@@ -313,9 +313,9 @@ cursor has moved to using \"isearch\" commands in
                     child-entry-path))
           (t
            (let ((inhibit-message t))
-             (bfs-parent parent)
-             (bfs-child parent child-entry))
-           (bfs-preview parent child-entry)))))
+           (bfs-parent-buffer parent)
+           (bfs-child-buffer parent child-entry))
+         (bfs-preview parent child-entry)))))
 
 (defun bfs-display (parent child-entry)
   "Display `bfs' buffers in a 3 panes layout for PARENT and
@@ -324,8 +324,8 @@ Intended to be called only once in `bfs'."
   (when (window-parameter (selected-window) 'window-side)
     (other-window 1))
   (delete-other-windows)
-  (bfs-parent parent)
-  (bfs-child parent child-entry)
+  (bfs-parent-buffer parent)
+  (bfs-child-buffer parent child-entry)
   (setq bfs-frame (selected-frame))
   (setq bfs-windows
         (plist-put bfs-windows
@@ -549,7 +549,7 @@ before entering in the `bfs' environment."
   "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
 buffers when `bfs' environment is \"activated\" with `bfs' command.
 
-See `bfs-child' and `bfs-parent' commands."
+See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
