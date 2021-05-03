@@ -8,25 +8,25 @@
 
 ;;; Movements
 
-(defvar bfs-backward-visited nil
+(defvar bfs-visited-backward nil
   "List of child files that have been visited.  Child files are
-added uniquely to `bfs-backward-visited' only when we use
+added uniquely to `bfs-visited-backward' only when we use
 `bfs-backward' command.  This allow `bfs-forward' to be smart.")
 
-(defun bfs-get-backward-visited (child)
-  "Return the element of `bfs-backward-visited' which directory name match CHILD.
+(defun bfs-get-visited-backward (child)
+  "Return the element of `bfs-visited-backward' which directory name match CHILD.
 Return nil if there is no matches."
-  (--first (f-equal-p child (f-dirname it)) bfs-backward-visited))
+  (--first (f-equal-p child (f-dirname it)) bfs-visited-backward))
 
-(defun bfs-update-backward-visited (child)
-  "Add CHILD to `bfs-backward-visited' conditionally."
+(defun bfs-update-visited-backward (child)
+  "Add CHILD to `bfs-visited-backward' conditionally."
   (unless (or (and (f-directory-p child)
                    (not (file-accessible-directory-p child)))
               (not (bfs-file-readable-p child)))
-    (setq bfs-backward-visited
+    (setq bfs-visited-backward
           (cons child
                 (--remove (f-equal-p (f-dirname child) (f-dirname it))
-                          bfs-backward-visited)))))
+                          bfs-visited-backward)))))
 
 (defun bfs-previous ()
   "Preview previous file."
@@ -46,7 +46,7 @@ Return nil if there is no matches."
 In other words, go up by one node in the file system tree."
   (interactive)
   (unless (f-root-p default-directory)
-    (bfs-update-backward-visited (bfs-child))
+    (bfs-update-visited-backward (bfs-child))
     (bfs-update default-directory)))
 
 (defun bfs-forward ()
@@ -61,7 +61,7 @@ environment and visit that file."
                 (not (file-accessible-directory-p child)))
            (message "Permission denied: %s" child))
           ((f-directory-p child)
-           (let ((visited (bfs-get-backward-visited child))
+           (let ((visited (bfs-get-visited-backward child))
                  (readable (bfs-first-readable-file child)))
              (cond (visited (bfs-update visited))
                    ((and readable (s-blank-p readable))
@@ -462,7 +462,7 @@ before entering in the `bfs' environment."
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
     (kill-new (f-join default-directory (bfs-child-entry)))
-    (setq bfs-backward-visited nil)
+    (setq bfs-visited-backward nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
