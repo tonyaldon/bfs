@@ -16,23 +16,20 @@ lookup `bfs-backward-visited' and make a better choice of
 the child-entry we want the cursor to be, given a PARENT we
 want to visite with a \"bfs forward movement\".")
 
-(defun bfs-get-backward-visited (parent)
-  "Return child-entry from `bfs-backward-visited' if (PARENT . child-entry)
-is found in `bfs-backward-visited'.
-Return nil if not."
-  (cdr (--first (f-equal-p (car it) parent)
-                bfs-backward-visited)))
+(defun bfs-get-backward-visited (child)
+  "Return the element of `bfs-backward-visited' which directory name match CHILD.
+Return nil if there is no matches."
+  (--first (f-equal-p child (f-dirname it)) bfs-backward-visited))
 
-(defun bfs-update-backward-visited (parent child-entry)
-  "Add (PARENT . CHILD-ENTRY) to `bfs-backward-visited' conditionally."
-  (let ((child-entry-path (f-join parent child-entry)))
-    (unless (or (and (f-directory-p child-entry-path)
-                     (not (file-accessible-directory-p child-entry-path)))
-                (not (bfs-file-readable-p child-entry-path)))
-      (setq bfs-backward-visited
-            (cons `(,parent . ,child-entry)
-                  (--remove (f-equal-p parent (car it))
-                            bfs-backward-visited))))))
+(defun bfs-update-backward-visited (child)
+  "Add CHILD to `bfs-backward-visited' conditionally."
+  (unless (or (and (f-directory-p child)
+                   (not (file-accessible-directory-p child)))
+              (not (bfs-file-readable-p child)))
+    (setq bfs-backward-visited
+          (cons child
+                (--remove (f-equal-p (f-dirname child) (f-dirname it))
+                          bfs-backward-visited)))))
 
 (defun bfs-previous ()
   "Preview previous file."
@@ -52,8 +49,8 @@ Return nil if not."
 In other words, go up by one node in the file system tree."
   (interactive)
   (unless (f-root-p default-directory)
-    (bfs-update-backward-visited default-directory (bfs-child-entry))
-    (bfs-update (f-parent default-directory) (bfs-parent-entry))))
+    (bfs-update-backward-visited (bfs-child))
+    (bfs-update default-directory)))
 
 (defun bfs-forward ()
   "Update `bfs' environment making child entry the parent entry.
@@ -62,34 +59,32 @@ In other words, go down by one node in the file system tree.
 If child entry (is not a directory) and is a readable file, leave `bfs'
 environment and visit that file."
   (interactive)
-  (let* ((child-entry (bfs-child-entry))
-         (child-entry-path (f-join default-directory child-entry))
-         (new-parent child-entry-path))
-    (cond ((and (f-directory-p child-entry-path)
-                (not (file-accessible-directory-p child-entry-path)))
-           (message "Permission denied: %s" child-entry-path))
-          ((f-directory-p child-entry-path)
-           (if-let (new-child-entry
-                    (or (bfs-get-backward-visited new-parent)
-                        (bfs-first-readable-file new-parent)))
-               (if (s-blank-p new-child-entry)
-                   (progn
-                     (bfs-clean)
-                     (delete-other-windows)
-                     (dired child-entry-path))
-                 (bfs-update new-parent new-child-entry))
-             (message (s-concat "Files are not readable, or are too large, "
-                                "or have discarded extensions, in directory: %s")
-                      child-entry-path)))
+  (let* ((child (bfs-child)))
+    (cond ((and (f-directory-p child)
+                (not (file-accessible-directory-p child)))
+           (message "Permission denied: %s" child))
+          ((f-directory-p child)
+           (let ((visited (bfs-get-backward-visited child))
+                 (readable (bfs-first-readable-file child)))
+             (cond (visited (bfs-update visited))
+                   ((and readable (s-blank-p readable))
+                    (bfs-clean)
+                    (delete-other-windows)
+                    (dired child))
+                   (readable (bfs-update (f-join child readable)))
+                   (t (message
+                       (s-concat "Files are not readable, or are too large, "
+                                 "or have discarded extensions, in directory: %s")
+                       child)))))
           (t
-           (let (child-entry-buffer)
+           (let (child-buffer)
              (condition-case err
-                 (setq child-entry-buffer (find-file-noselect child-entry-path))
+                 (setq child-buffer (find-file-noselect child))
                (file-error (message "%s" (error-message-string err))))
-             (when child-entry-buffer
+             (when child-buffer
                (bfs-clean)
                (delete-other-windows)
-               (find-file child-entry-path)))))))
+               (find-file child)))))))
 
 ;;; Scrolling
 
@@ -301,21 +296,28 @@ cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
   (bfs-preview default-directory (bfs-child-entry)))
 
-(defun bfs-update (parent child-entry)
-  "Update `bfs' environment according to PARENT and CHILD-ENTRY."
-  (let ((child-entry-path (f-join parent child-entry)))
-    (cond ((and (f-directory-p child-entry-path)
-                (not (file-accessible-directory-p child-entry-path)))
-           (message "Permission denied: %s" child-entry-path))
-          ((not (bfs-file-readable-p child-entry-path))
-           (message (s-concat "File is not readable, or are too large, "
-                              "or have discarded extensions: %s")
-                    child-entry-path))
-          (t
-           (let ((inhibit-message t))
+(defun bfs-update (child)
+  "Update `bfs' environment according to CHILD file."
+  (cond ((not (f-exists-p child))
+         (message "File doesn't exist: %s" child))
+        ((and (f-directory-p child)
+              (not (file-accessible-directory-p child)))
+         (message "Permission denied: %s" child))
+        ((not (bfs-file-readable-p child))
+         (message (s-concat "File is not readable, or is too large, "
+                            "or have discarded extensions: %s")
+                  child))
+        (t
+         (let ((inhibit-message t) parent child-entry)
+           (if (f-root-p child)
+               (progn (setq parent "/")
+                      (setq child-entry (bfs-first-readable-file "/")))
+             (setq parent (f-dirname child))
+             (setq child-entry (f-filename child)))
            (bfs-parent-buffer parent)
-           (bfs-child-buffer parent child-entry))
-         (bfs-preview parent child-entry)))))
+           (bfs-child-buffer parent child-entry)
+           (bfs-preview parent child-entry)))))
+
 
 (defun bfs-display (parent child-entry)
   "Display `bfs' buffers in a 3 panes layout for PARENT and
@@ -347,10 +349,7 @@ Intended to be called only once in `bfs'."
   "Find a file with your completion framework and update `bfs' environment."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
-  (cond ((f-root-p filename)
-         (bfs-update "/" "/"))
-        (t
-         (bfs-update (f-dirname filename) (f-filename filename)))))
+  (bfs-update filename))
 
 ;;; Leave bfs
 
