@@ -235,7 +235,7 @@ Used internally.")
 Used internally.
 Properties of this plist are: :parent, :child, :preview")
 
-(defvar bfs-environment-is-on-p nil
+(defvar bfs-is-active nil
   "t means that `bfs' environment has been turned on
 in the frame `bfs-frame'.
 Used internally.")
@@ -455,7 +455,7 @@ before entering in the `bfs' environment."
 (defun bfs-clean ()
   "Leave `bfs' environment and clean emacs state."
   (unless (window-minibuffer-p)
-    (setq bfs-environment-is-on-p nil)
+    (setq bfs-is-active nil)
     (remove-function after-delete-frame-functions 'bfs-clean-if-frame-deleted)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
@@ -594,7 +594,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
 \\{bfs-child-mode-map}."
   (interactive)
   (cond
-   (bfs-environment-is-on-p
+   (bfs-is-active
     (when (eq (selected-frame) bfs-frame)
       (bfs-quit)))
    (t
@@ -604,7 +604,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
           (message (s-concat "Files are not readable, or are too large, "
                              "or have discarded extensions, in directory: %s")
                    parent)
-        (setq bfs-environment-is-on-p t)
+        (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
         (bfs-display parent child-entry-initial)
