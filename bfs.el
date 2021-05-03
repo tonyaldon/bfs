@@ -1,3 +1,5 @@
+;;; bfs.el --- Browse File System -*- lexical-binding: t; -*-
+
 ;;; Packages
 
 (require 's)
@@ -426,7 +428,7 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
     (delete-other-windows))
    (t nil)))
 
-(defun bfs-clean-if-frame-deleted (frame)
+(defun bfs-clean-if-frame-deleted (_frame)
   "Clean `bfs' environment if the frame that was running it has been deleted.
 Intended to be added to `after-delete-frame-functions'."
   (unless (frame-live-p bfs-frame)
