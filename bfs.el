@@ -354,7 +354,7 @@ Intended to be called only once in `bfs'."
 
 ;;; Leave bfs
 
-(defun bfs-child-entry-path ()
+(defun bfs-child ()
   "Return file path corresponding to the current child entry.
 If `bfs-child-buffer-name' isn't lived return nil."
   (when (buffer-live-p (get-buffer bfs-child-buffer-name))
@@ -371,14 +371,14 @@ See `bfs-windows'."
 
 (defun bfs-preview-matches-child-p ()
   "Return t if buffer of preview window matches the child entry."
-  (when-let* ((child-entry-path (bfs-child-entry-path))
+  (when-let* ((child (bfs-child))
               (preview-buffer-name (bfs-preview-buffer-name))
               (preview-file-path
                (with-current-buffer preview-buffer-name
                  (if (equal major-mode 'dired-mode)
                      default-directory
                    (buffer-file-name)))))
-    (f-equal-p preview-file-path child-entry-path)))
+    (f-equal-p preview-file-path child)))
 
 (defun bfs-valid-layout-p ()
   "Return t if the window layout in `bfs-frame' frame
