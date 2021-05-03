@@ -401,6 +401,11 @@ corresponds to the `bfs' environment layout."
            (string= (buffer-name (window-buffer (window-in-direction 'right preview-win t nil t)))
                     bfs-parent-buffer-name)))))
 
+(defvar bfs-do-not-check-after
+  '(bfs bfs-backward bfs-forward bfs-find-file)
+  "List of commands after which we don't want to check the validity of
+`bfs' environment.")
+
 (defun bfs-check-environment ()
   "Leave `bfs' environment if it isn't valid.
 
@@ -418,7 +423,7 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
   (cond
    ((or (window-minibuffer-p)
         (not (eq (selected-frame) bfs-frame))
-        (memq last-command '(bfs bfs-backward bfs-forward bfs-find-file)))
+        (memq last-command bfs-do-not-check-after))
     nil) ;; do nothing
    ((or (not (bfs-valid-layout-p))
         (not (bfs-preview-matches-child-p)))
