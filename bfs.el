@@ -363,11 +363,15 @@ Intended to be called only once in `bfs'."
 
 ;;; Find a file
 
-(defun bfs-find-file (filename)
+(defun bfs-find-file (file)
   "Find a file with your completion framework and update `bfs' environment."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
-  (bfs-update filename))
+  (if (and (f-directory-p file)
+           (not (f-root-p file))
+           (bfs-first-readable-file file))
+      (bfs-update (f-join file (bfs-first-readable-file file)))
+    (bfs-update file)))
 
 ;;; Leave bfs
 
