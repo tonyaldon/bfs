@@ -156,11 +156,7 @@ See `file-readable-p'."
 
 Return nil if none are found.
 Return an empty string if DIR directory is empty."
-  (--first (bfs-file-readable-p (f-join dir it))
-           (-> (s-join " " (list bfs-ls-cli dir))
-               (shell-command-to-string)
-               (s-chomp)
-               (s-lines))))
+  (--first (bfs-file-readable-p (f-join dir it)) (bfs-ls dir)))
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
@@ -227,14 +223,6 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 (defvar bfs-max-size large-file-warning-threshold
   "Don't preview files larger than this size.")
 
-(defvar bfs-ls-cli "ls -Ap --group-directories-first"
-  "The ls command line with the flags used.
-
-The -p flag of ls append a / to the listed directories.
-We use it to fontify the directories in `bfs-child-buffer-name'
-and `bfs-parent-buffer-name'.  See `bfs-re-dir' and
-`bfs-font-lock-keywords'.")
-
 (defvar bfs-parent-buffer-name "*bfs-parent*"
   "Parent buffer name.")
 
@@ -275,9 +263,7 @@ of the directory containing PARENT directory."
     (read-only-mode -1)
     (erase-buffer)
     (cond ((f-root-p parent) (insert "/") (bfs-goto-entry "/"))
-          (t (-> (s-join " " (list bfs-ls-cli (f-parent parent)))
-                 shell-command-to-string
-                 insert)
+          (t (bfs-insert-ls (f-parent parent))
              (bfs-goto-entry (f-filename parent))))
     (bfs-mode parent)))
 
@@ -287,9 +273,7 @@ of the directory PARENT and the cursor at CHILD entry."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
-    (-> (s-join " " (list bfs-ls-cli parent))
-        shell-command-to-string
-        insert)
+    (bfs-insert-ls parent)
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
 
