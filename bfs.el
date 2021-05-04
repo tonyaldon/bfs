@@ -317,15 +317,15 @@ cursor has moved to using \"isearch\" commands in
       (bfs-child-buffer parent child-entry)
       (bfs-preview (f-join parent child-entry)))))
 
-(defun bfs-display (parent child-entry)
+(defun bfs-display (child)
   "Display `bfs' buffers in a 3 panes layout for PARENT and
 CHILD-ENTRY arguments.
 Intended to be called only once in `bfs'."
   (when (window-parameter (selected-window) 'window-side)
     (other-window 1))
   (delete-other-windows)
-  (bfs-parent-buffer parent)
-  (bfs-child-buffer parent child-entry)
+  (bfs-parent-buffer (f-dirname child))
+  (bfs-child-buffer (f-dirname child) (f-filename child))
   (setq bfs-frame (selected-frame))
   (setq bfs-windows
         (plist-put bfs-windows
@@ -339,7 +339,7 @@ Intended to be called only once in `bfs'."
                            bfs-child-window-parameters)))
   (setq bfs-windows
         (plist-put bfs-windows
-                   :preview (bfs-preview (f-join parent child-entry) t))))
+                   :preview (bfs-preview child t))))
 
 ;;; Find a file
 
@@ -609,7 +609,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
-        (bfs-display parent child-entry-initial)
+        (bfs-display (f-join parent child-entry-initial))
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
         (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
