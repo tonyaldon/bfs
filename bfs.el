@@ -5,6 +5,7 @@
 (require 's)
 (require 'f)
 (require 'dash)
+(require 'ls-lisp)
 
 ;;; Movements
 
@@ -181,6 +182,38 @@ See `bfs-first-readable-file'."
   (goto-char (point-min))
   (search-forward-regexp (s-concat "^" entry) nil t)
   (beginning-of-line))
+
+;;; List directories
+
+(defun bfs-ls-group-directory-first (file-alist)
+  "Sort FILE-ALIST with directories first keeping only the FILEs.
+FILE-ALIST's elements are (FILE . FILE-ATTRIBUTES).
+Add a trailing slash \"/\" to directories.
+If FILE is one of \".\" or \"..\", we remove it from
+the resulting list."
+  (let (el dirs files)
+    (while file-alist
+      (if (or (eq (cadr (setq el (car file-alist))) t) ; directory
+              (and (stringp (cadr el))
+                   (file-directory-p (cadr el)))) ; symlink to a directory
+          (unless (member (car el) '("." ".."))
+            (setq dirs (cons (concat (car el) "/") dirs)))
+        (setq files (cons (car el) files)))
+      (setq file-alist (cdr file-alist)))
+    (nconc (nreverse dirs) (nreverse files))))
+
+(defun bfs-ls (dir)
+  "Return the list of files in DIR appending a \"/\" to the directories.
+The list is sorted alphabetically with the directories first."
+  (let ((file-alist
+         (sort (directory-files-and-attributes dir)
+               (lambda (x y) (ls-lisp-string-lessp (car x) (car y))))))
+    (bfs-ls-group-directory-first file-alist)))
+
+(defun bfs-insert-ls (dir)
+  "Insert directory listing for DIR, formatted according to `bfs-ls'.
+Leave point after the inserted text."
+  (insert (s-join "\n" (bfs-ls dir))))
 
 ;;; Create, display and update buffers
 
