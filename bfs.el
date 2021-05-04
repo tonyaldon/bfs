@@ -138,7 +138,7 @@ environment and visit that file."
     (f-filename default-directory)))
 
 (defun bfs-file-readable-p (file)
-  "Return t if FILE is a readable satisfaying:
+  "Return t if FILE is a readable file satisfaying:
 - its extension doesn't belong to `bfs-ignored-extensions',
 - and its size is less than `bfs-max-size'.
 
