@@ -567,11 +567,15 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
 
 ;;; bfs (main entry)
 
-(defun bfs ()
+(defun bfs (&optional file)
   "Start a `bfs' (Browse File System) environment in the `selected-frame'.
 
 This pops up a 3 panes (windows) layout that allow you to browse
 your file system and preview files.
+
+If FILE (a file name) is given:
+- if it is a file, preview it in the right window,
+- if it is a directory, list it in the child window.
 
 You can only have one `bfs' environment running at a time.
 
@@ -601,16 +605,23 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
     (when (eq (selected-frame) bfs-frame)
       (bfs-quit)))
    (t
-    (let* ((parent default-directory)
-           (child-entry-initial (bfs-child-entry-initial (current-buffer))))
-      (if  (not child-entry-initial)
+    (let (child)
+      (if file
+          (if (and (f-directory-p file)
+                   (not (f-root-p file))
+                   (bfs-first-readable-file file))
+              (setq child (f-join file (bfs-first-readable-file file)))
+            (setq child file))
+        (if-let ((child-entry-initial (bfs-child-entry-initial (current-buffer))))
+            (setq child (f-join default-directory child-entry-initial))
           (message (s-concat "Files are not readable, or are too large, "
                              "or have discarded extensions, in directory: %s")
-                   parent)
+                   default-directory)))
+      (when (and child (bfs-child-is-valid-p child))
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
-        (bfs-display (f-join parent child-entry-initial))
+        (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
         (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
