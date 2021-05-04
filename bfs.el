@@ -32,14 +32,14 @@ Return nil if there is no matches."
   "Preview previous file."
   (interactive)
   (unless (bobp) (forward-line -1))
-  (bfs-preview default-directory (bfs-child-entry)))
+  (bfs-preview (bfs-child)))
 
 (defun bfs-next ()
   "Preview next file."
   (interactive)
   (unless (= (line-number-at-pos) (1- (line-number-at-pos (point-max))))
     (forward-line))
-  (bfs-preview default-directory (bfs-child-entry)))
+  (bfs-preview (bfs-child)))
 
 (defun bfs-backward ()
   "Update `bfs' environment making parent entry the child entry.
@@ -103,27 +103,27 @@ environment and visit that file."
   "Scroll child window down of half window height."
   (interactive)
   (scroll-down (bfs-half-window-height))
-  (bfs-preview default-directory (bfs-child-entry)))
+  (bfs-preview (bfs-child)))
 
 (defun bfs-scroll-up-half-window ()
   "Scroll child window up of half window height."
   (interactive)
   (scroll-up (bfs-half-window-height))
   (if (eobp) (bfs-previous)
-    (bfs-preview default-directory (bfs-child-entry))))
+    (bfs-preview (bfs-child))))
 
 (defun bfs-beginning-of-buffer ()
   "Move to beginning of buffer."
   (interactive)
   (call-interactively 'beginning-of-buffer)
-  (bfs-preview default-directory (bfs-child-entry)))
+  (bfs-preview (bfs-child)))
 
 (defun bfs-end-of-buffer ()
   "Move to beginning of buffer."
   (interactive)
   (call-interactively 'end-of-buffer)
   (if (eobp) (bfs-previous)
-    (bfs-preview default-directory (bfs-child-entry))))
+    (bfs-preview (bfs-child))))
 
 ;;; Utilities
 
@@ -257,13 +257,12 @@ of the directory PARENT and the cursor at CHILD entry."
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
 
-(defun bfs-preview (parent child-entry &optional first-time)
-  "Preview file CHILD of PARENT.
+(defun bfs-preview (child &optional first-time)
+  "Preview file CHILD on the right window.
 When FIRST-TIME is non-nil, set the window layout."
-  (let ((child (f-join parent child-entry))
-        preview-window)
+  (let (preview-window)
     (cond ((bfs-preview-matches-child-p) nil) ; do nothing
-          ((member (file-name-extension child-entry)
+          ((member (file-name-extension child)
                    bfs-ignored-extensions)
            nil) ; do nothing
           ((> (file-attribute-size (file-attributes child))
@@ -291,7 +290,7 @@ Intended to be added to `isearch-update-post-hook' and
 `isearch-mode-end-hook'.  This allows to preview the file the
 cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
-  (bfs-preview default-directory (bfs-child-entry)))
+  (bfs-preview (bfs-child)))
 
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
@@ -313,7 +312,7 @@ cursor has moved to using \"isearch\" commands in
              (setq child-entry (f-filename child)))
            (bfs-parent-buffer parent)
            (bfs-child-buffer parent child-entry)
-           (bfs-preview parent child-entry)))))
+           (bfs-preview (f-join parent child-entry))))))
 
 
 (defun bfs-display (parent child-entry)
@@ -338,7 +337,7 @@ Intended to be called only once in `bfs'."
                            bfs-child-window-parameters)))
   (setq bfs-windows
         (plist-put bfs-windows
-                   :preview (bfs-preview parent child-entry t))))
+                   :preview (bfs-preview (f-join parent child-entry) t))))
 
 ;;; Find a file
 
