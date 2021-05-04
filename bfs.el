@@ -161,7 +161,7 @@ Return an empty string if DIR directory is empty."
                (s-chomp)
                (s-lines))))
 
-(defun bfs-child-entry-initial (buffer)
+(defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
 Return nil if we can't determine a \"suitable\" file name for BUFFER.
 
@@ -612,7 +612,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
                    (bfs-first-readable-file file))
               (setq child (f-join file (bfs-first-readable-file file)))
             (setq child file))
-        (if-let ((child-entry-initial (bfs-child-entry-initial (current-buffer))))
+        (if-let ((child-entry-initial (bfs-child-default (current-buffer))))
             (setq child (f-join default-directory child-entry-initial))
           (message (s-concat "Files are not readable, or are too large, "
                              "or have discarded extensions, in directory: %s")
