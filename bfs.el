@@ -169,6 +169,7 @@ See `bfs-first-readable-file'."
   (with-current-buffer buffer
     (cond ((buffer-file-name) (f-filename (buffer-file-name)))
           ((and (dired-file-name-at-point)
+                (not (member (f-filename (dired-file-name-at-point)) '("." "..")))
                 (bfs-file-readable-p (dired-file-name-at-point)))
            (f-filename (dired-file-name-at-point)))
           (t (bfs-first-readable-file default-directory)))))
