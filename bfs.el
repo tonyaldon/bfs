@@ -292,28 +292,30 @@ cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
   (bfs-preview (bfs-child)))
 
+(defun bfs-child-is-valid-p (child)
+  "Return t if CHILD file can be previewed in `bfs' environment."
+  (not (cond ((not (f-exists-p child))
+              (message "File doesn't exist: %s" child))
+             ((and (f-directory-p child)
+                   (not (file-accessible-directory-p child)))
+              (message "Permission denied: %s" child))
+             ((not (bfs-file-readable-p child))
+              (message (s-concat "File is not readable, or is too large, "
+                                 "or have discarded extensions: %s")
+                       child)))))
+
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
-  (cond ((not (f-exists-p child))
-         (message "File doesn't exist: %s" child))
-        ((and (f-directory-p child)
-              (not (file-accessible-directory-p child)))
-         (message "Permission denied: %s" child))
-        ((not (bfs-file-readable-p child))
-         (message (s-concat "File is not readable, or is too large, "
-                            "or have discarded extensions: %s")
-                  child))
-        (t
-         (let ((inhibit-message t) parent child-entry)
-           (if (f-root-p child)
-               (progn (setq parent "/")
-                      (setq child-entry (bfs-first-readable-file "/")))
-             (setq parent (f-dirname child))
-             (setq child-entry (f-filename child)))
-           (bfs-parent-buffer parent)
-           (bfs-child-buffer parent child-entry)
-           (bfs-preview (f-join parent child-entry))))))
-
+  (when (bfs-child-is-valid-p child)
+    (let ((inhibit-message t) parent child-entry)
+      (if (f-root-p child)
+          (progn (setq parent "/")
+                 (setq child-entry (bfs-first-readable-file "/")))
+        (setq parent (f-dirname child))
+        (setq child-entry (f-filename child)))
+      (bfs-parent-buffer parent)
+      (bfs-child-buffer parent child-entry)
+      (bfs-preview (f-join parent child-entry)))))
 
 (defun bfs-display (parent child-entry)
   "Display `bfs' buffers in a 3 panes layout for PARENT and
