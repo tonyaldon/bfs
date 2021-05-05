@@ -38,7 +38,7 @@ Return nil if there is no matches."
 (defun bfs-next ()
   "Preview next file."
   (interactive)
-  (unless (= (line-number-at-pos) (1- (line-number-at-pos (point-max))))
+  (unless (= (line-number-at-pos) (line-number-at-pos (point-max)))
     (forward-line))
   (bfs-preview (bfs-child)))
 
