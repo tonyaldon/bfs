@@ -65,11 +65,11 @@ environment and visit that file."
            (let ((visited (bfs-get-visited-backward child))
                  (readable (bfs-first-readable-file child)))
              (cond (visited (bfs-update visited))
-                   ((and readable (s-blank-p readable))
+                   ((and readable (f-equal-p readable child))
                     (bfs-clean)
                     (delete-other-windows)
                     (dired child))
-                   (readable (bfs-update (f-join child readable)))
+                   (readable (bfs-update readable))
                    (t (message
                        (s-concat "Files are not readable, or are too large, "
                                  "or have discarded extensions, in directory: %s")
@@ -156,7 +156,8 @@ See `file-readable-p'."
 
 Return nil if none are found.
 Return an empty string if DIR directory is empty."
-  (--first (bfs-file-readable-p (f-join dir it)) (bfs-ls dir)))
+  (--first (bfs-file-readable-p it)
+           (--map (f-join dir it) (bfs-ls dir))))
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
@@ -169,9 +170,7 @@ See `bfs-first-readable-file'."
                 (not (member (f-filename (dired-file-name-at-point)) '("." "..")))
                 (bfs-file-readable-p (dired-file-name-at-point)))
            (dired-file-name-at-point))
-          ((bfs-first-readable-file default-directory)
-           (f-join default-directory
-                   (bfs-first-readable-file default-directory))))))
+          ((bfs-first-readable-file default-directory)))))
 
 (defun bfs-goto-entry (entry)
   "Move the cursor to the line ENTRY."
@@ -330,7 +329,9 @@ cursor has moved to using \"isearch\" commands in
     (let ((inhibit-message t) parent child-entry)
       (if (f-root-p child)
           (progn (setq parent "/")
-                 (setq child-entry (bfs-first-readable-file "/")))
+                 (setq child-entry
+                       (and (bfs-first-readable-file "/")
+                            (f-filename (bfs-first-readable-file "/")))))
         (setq parent (f-dirname child))
         (setq child-entry (f-filename child)))
       (bfs-parent-buffer parent)
@@ -370,7 +371,7 @@ Intended to be called only once in `bfs'."
   (if (and (f-directory-p file)
            (not (f-root-p file))
            (bfs-first-readable-file file))
-      (bfs-update (f-join file (bfs-first-readable-file file)))
+      (bfs-update (bfs-first-readable-file file))
     (bfs-update file)))
 
 ;;; Leave bfs
@@ -633,7 +634,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
           (if (and (f-directory-p file)
                    (not (f-root-p file))
                    (bfs-first-readable-file file))
-              (setq child (f-join file (bfs-first-readable-file file)))
+              (setq child (bfs-first-readable-file file))
             (setq child file))
         (if-let ((child-default (bfs-child-default (current-buffer))))
             (setq child child-default)
