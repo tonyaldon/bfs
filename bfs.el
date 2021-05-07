@@ -565,6 +565,7 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
+  (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
          (use-local-map bfs-child-mode-map))
