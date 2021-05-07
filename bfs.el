@@ -487,7 +487,6 @@ before entering in the `bfs' environment."
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
-    (kill-new (f-join default-directory (bfs-child-entry)))
     (setq bfs-visited-backward nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
