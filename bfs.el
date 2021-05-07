@@ -519,15 +519,6 @@ before entering in the `bfs' environment."
 (defvar bfs-font-lock-keywords
   `((,bfs-re-dir . bfs-directory-face)))
 
-(defvar bfs-hl-line-background "#394851"
-  "Background color of `hl-line' in `bfs-mode'.")
-
-(defvar bfs-hl-line-foreground "#cfcdba"
-  "forground color of `hl-line' in `bfs-mode'.")
-
-(defvar bfs-hl-line-is-bold t
-  "Whether `hl-line' must be 'bold or not in `bfs-mode'.")
-
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'bfs-quit)
@@ -574,15 +565,12 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
+  (setq-local global-hl-line-mode nil)
   (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
          (use-local-map bfs-child-mode-map))
         ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
          (use-local-map bfs-parent-mode-map))
         (t t))
-  (hl-line-mode)
-  (face-remap-add-relative 'hl-line :background bfs-hl-line-background)
-  (face-remap-add-relative 'hl-line :foreground bfs-hl-line-foreground)
-  (if bfs-hl-line-is-bold (face-remap-add-relative 'hl-line 'bold))
   (setq major-mode 'bfs-mode
         mode-name "bfs"
         buffer-read-only t)
