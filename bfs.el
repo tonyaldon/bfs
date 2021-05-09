@@ -183,17 +183,20 @@ See `bfs-first-readable-file'."
 (defun bfs-ls-group-directory-first (file-alist)
   "Sort FILE-ALIST with directories first keeping only the FILEs.
 FILE-ALIST's elements are (FILE . FILE-ATTRIBUTES).
-Add a trailing slash \"/\" to directories.
 If FILE is one of \".\" or \"..\", we remove it from
-the resulting list."
+the resulting list.
+
+Face properties are added to files and directories here."
   (let (el dirs files)
     (while file-alist
       (if (or (eq (cadr (setq el (car file-alist))) t) ; directory
               (and (stringp (cadr el))
                    (file-directory-p (cadr el)))) ; symlink to a directory
           (unless (member (car el) '("." ".."))
-            (setq dirs (cons (concat (car el) "/") dirs)))
-        (setq files (cons (car el) files)))
+            (setq dirs (cons (propertize (car el) 'face bfs-directory-face)
+                             dirs)))
+        (setq files (cons (propertize (car el) 'face bfs-file-face)
+                          files)))
       (setq file-alist (cdr file-alist)))
     (nconc (nreverse dirs) (nreverse files))))
 
@@ -516,10 +519,13 @@ before entering in the `bfs' environment."
 (defvar bfs-directory-face 'bfs-directory
   "Face name used for subdirectories.")
 
-(defvar bfs-re-dir ".*/$")
+(defface bfs-file
+  '((t (:foreground "#dedede")))
+  "Face used for files."
+  :group 'bfs)
 
-(defvar bfs-font-lock-keywords
-  `((,bfs-re-dir . bfs-directory-face)))
+(defvar bfs-file-face 'bfs-file
+  "Face name used for files.")
 
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
@@ -578,8 +584,7 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
         (t t))
   (setq major-mode 'bfs-mode
         mode-name "bfs"
-        buffer-read-only t)
-  (setq-local font-lock-defaults '(bfs-font-lock-keywords t nil nil)))
+        buffer-read-only t))
 
 ;;; bfs (main entry)
 
