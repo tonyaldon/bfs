@@ -565,6 +565,49 @@ before entering in the `bfs' environment."
     map)
   "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
 
+;;;; Highlight line in child and parent buffers
+
+(defvar-local bfs-line-overlay nil
+  "Overlay used by `bfs-mode' mode to highlight the current line.")
+
+(defun bfs-line-make-overlay ()
+  (let ((ol (make-overlay (point) (point))))
+    (overlay-put ol 'priority -50)
+    ol))
+
+(defun bfs-line-move-overlay (overlay)
+  "Move `bfs-line-overlay' to the line including the point by OVERLAY."
+  (move-overlay
+   overlay (line-beginning-position) (line-beginning-position 2)))
+
+(defun bfs-line-highlight ()
+  "Activate overlay on the current line."
+  (unless bfs-line-overlay
+    (setq bfs-line-overlay (bfs-line-make-overlay)))
+  (let ((background-dir (or (face-background 'bfs-directory)
+                            (face-background 'default)))
+        (foreground-dir (or (face-foreground 'bfs-directory)
+                            (face-foreground 'default)))
+        (background-file (or (face-background 'bfs-file)
+                             (face-background 'default)))
+        (foreground-file (or (face-foreground 'bfs-file)
+                             (face-foreground 'default)))
+        face)
+    (cond ((or (equal (buffer-name (current-buffer))
+                      bfs-parent-buffer-name)
+               (f-directory-p (bfs-child)))
+           (setq face `(:background ,foreground-dir
+                        :foreground ,background-dir
+                        :weight ultra-bold
+                        :extend t)))
+          (t (setq face `(:background ,foreground-file
+                          :foreground ,background-file
+                          :weight ultra-bold
+                          :extend t))))
+    (overlay-put bfs-line-overlay 'face face))
+  (overlay-put bfs-line-overlay 'window nil)
+  (bfs-line-move-overlay bfs-line-overlay))
+
 ;;;; Mode
 
 (defun bfs-mode (&optional parent)
@@ -577,6 +620,8 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (setq default-directory (or parent default-directory))
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
+  (bfs-line-highlight)
+  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
   (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
          (use-local-map bfs-child-mode-map))
         ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
