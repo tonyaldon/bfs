@@ -504,6 +504,8 @@ before entering in the `bfs' environment."
 
 ;;; bfs-mode
 
+;;;; Variables
+
 (defgroup bfs nil "Browsing File System." :group 'files)
 
 (defface bfs-directory
@@ -556,6 +558,8 @@ before entering in the `bfs' environment."
     (set-keymap-parent map bfs-mode-map)
     map)
   "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
+
+;;;; Mode
 
 (defun bfs-mode (&optional parent)
   "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
