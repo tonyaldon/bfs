@@ -512,12 +512,12 @@ before entering in the `bfs' environment."
 (defgroup bfs nil "Browsing File System." :group 'files)
 
 (defface bfs-directory
-  '((t (:foreground "#458b74")))
+  '((t (:inherit dired-directory)))
   "Face used for subdirectories."
   :group 'bfs)
 
 (defface bfs-file
-  '((t (:foreground "#dedede")))
+  '((t (:inherit default)))
   "Face used for files."
   :group 'bfs)
 
@@ -578,14 +578,14 @@ before entering in the `bfs' environment."
   "Activate overlay on the current line."
   (unless bfs-line-overlay
     (setq bfs-line-overlay (bfs-line-make-overlay)))
-  (let ((background-dir (or (face-background 'bfs-directory)
-                            (face-background 'default)))
-        (foreground-dir (or (face-foreground 'bfs-directory)
-                            (face-foreground 'default)))
-        (background-file (or (face-background 'bfs-file)
-                             (face-background 'default)))
-        (foreground-file (or (face-foreground 'bfs-file)
-                             (face-foreground 'default)))
+  (let ((background-dir (or (face-background 'bfs-directory nil t)
+                            (face-background 'default nil t)))
+        (foreground-dir (or (face-foreground 'bfs-directory nil t)
+                            (face-foreground 'default nil t)))
+        (background-file (or (face-background 'bfs-file nil t)
+                             (face-background 'default nil t)))
+        (foreground-file (or (face-foreground 'bfs-file nil t)
+                             (face-foreground 'default nil t)))
         face)
     (cond ((or (equal (buffer-name (current-buffer))
                       bfs-parent-buffer-name)
