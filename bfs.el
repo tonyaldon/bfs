@@ -193,9 +193,9 @@ Face properties are added to files and directories here."
               (and (stringp (cadr el))
                    (file-directory-p (cadr el)))) ; symlink to a directory
           (unless (member (car el) '("." ".."))
-            (setq dirs (cons (propertize (car el) 'face bfs-directory-face)
+            (setq dirs (cons (propertize (car el) 'face 'bfs-directory)
                              dirs)))
-        (setq files (cons (propertize (car el) 'face bfs-file-face)
+        (setq files (cons (propertize (car el) 'face 'bfs-file)
                           files)))
       (setq file-alist (cdr file-alist)))
     (nconc (nreverse dirs) (nreverse files))))
@@ -516,16 +516,10 @@ before entering in the `bfs' environment."
   "Face used for subdirectories."
   :group 'bfs)
 
-(defvar bfs-directory-face 'bfs-directory
-  "Face name used for subdirectories.")
-
 (defface bfs-file
   '((t (:foreground "#dedede")))
   "Face used for files."
   :group 'bfs)
-
-(defvar bfs-file-face 'bfs-file
-  "Face name used for files.")
 
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
