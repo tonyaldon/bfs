@@ -252,7 +252,7 @@ The list is sorted alphabetically with the directories first."
 Leave point after the inserted text."
   (insert (s-join "\n" (bfs-ls dir))))
 
-;;; Create, display and update buffers
+;;; Create buffers
 
 (defvar bfs-kill-buffer-eagerly nil
   "When t, kill opened buffer upon a new child entry file is previewed.
@@ -269,28 +269,6 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 
 (defvar bfs-child-buffer-name "*bfs-child*"
   "Child buffer name.")
-
-(defvar bfs-parent-window-parameters
-  '(display-buffer-in-side-window
-    (side . left)
-    (window-width . 0.2)
-    (window-parameters . ((no-other-window . t)))))
-
-(defvar bfs-child-window-parameters '(display-buffer-same-window))
-
-(defvar bfs-preview-window-parameters
-  '(display-buffer-in-direction
-    (direction . right)
-    (window-width . 0.6)))
-
-(defvar bfs-frame nil
-  "Frame where the `bfs' environment has been started.
-Used internally.")
-
-(defvar bfs-windows nil
-  "Plist that store `bfs' windows information.
-Used internally.
-Properties of this plist are: :parent, :child, :preview")
 
 (defvar bfs-is-active nil
   "t means that `bfs' environment has been turned on
@@ -317,6 +295,46 @@ of the directory PARENT and the cursor at CHILD entry."
     (bfs-insert-ls parent)
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
+
+;;; Display
+
+(defvar bfs-top-window-parameters
+  '(display-buffer-in-side-window
+    (side . top)
+    (window-height . 2)
+    (window-parameters . ((no-other-window . t)))))
+
+(defvar bfs-parent-window-parameters
+  '(display-buffer-in-side-window
+    (side . left)
+    (window-width . 0.2)
+    (window-parameters . ((no-other-window . t)))))
+
+(defvar bfs-child-window-parameters '(display-buffer-same-window))
+
+(defvar bfs-preview-window-parameters
+  '(display-buffer-in-direction
+    (direction . right)
+    (window-width . 0.6)))
+
+(defvar bfs-frame nil
+  "Frame where the `bfs' environment has been started.
+Used internally.")
+
+(defvar bfs-windows nil
+  "Plist that store `bfs' windows information.
+Used internally.
+Properties of this plist are: :parent, :child, :preview")
+
+(defvar bfs-visited-file-buffers nil
+  "List of live buffers visited with `bfs-preview' function
+during a `bfs' session.
+Used internally.")
+
+(defun bfs-top-update ()
+  "Update `bfs-top-buffer-name' and redisplay it."
+  (bfs-top-buffer)
+  (display-buffer bfs-top-buffer-name bfs-top-window-parameters))
 
 (defun bfs-preview (child &optional first-time)
   "Preview file CHILD on the right window.
@@ -473,10 +491,6 @@ Intended to be added to `after-delete-frame-functions'."
   (unless (frame-live-p bfs-frame)
     (bfs-clean)))
 
-(defvar bfs-visited-file-buffers nil
-  "List of live buffers visited with `bfs-preview' function
-during a `bfs' session.
-Used internally.")
 
 (defvar bfs-buffer-list-before nil
   "List of all live buffers when entering in the `bfs' environment.
@@ -705,12 +719,6 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
 (defvar bfs-top-buffer-name "*bfs-top*"
   "Top buffer name.")
 
-(defvar bfs-top-window-parameters
-  '(display-buffer-in-side-window
-    (side . top)
-    (window-height . 2)
-    (window-parameters . ((no-other-window . t)))))
-
 (defface bfs-top-parent-directory
   '((t (:inherit dired-header)))
   "Face used for parent directory path in `bfs-top-buffer-name' buffer."
@@ -814,11 +822,6 @@ if `bfs-top-line-default' length is greater than the top window width."
     (erase-buffer)
     (insert (funcall bfs-top-line-function (or child (bfs-child))))
     (bfs-top-mode)))
-
-(defun bfs-top-update ()
-  "Update `bfs-top-buffer-name' and redisplay it."
-  (bfs-top-buffer)
-  (display-buffer bfs-top-buffer-name bfs-top-window-parameters))
 
 (defvar bfs-top-mode-line-format
   `((:eval (format "%s" (bfs-top-mode-line))))
