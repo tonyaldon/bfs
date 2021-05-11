@@ -211,6 +211,165 @@ environment and visit that file."
   (if (eobp) (bfs-previous)
     (bfs-preview (bfs-child))))
 
+;;; Find a file
+
+(defun bfs-find-file (file)
+  "Find a file with your completion framework and update `bfs' environment."
+  (interactive
+   (list (read-file-name "Find file:" nil default-directory t)))
+  (if (and (f-directory-p file)
+           (not (f-root-p file))
+           (bfs-first-readable-file file))
+      (bfs-update (bfs-first-readable-file file))
+    (bfs-update file)))
+
+;;; bfs-top-mode
+
+(defun bfs-top-mode-line (&optional child)
+  "Return the string to be use in mode line of `bfs-top-buffer-name'."
+  (let ((file (or child (bfs-child))))
+    (with-temp-buffer
+      (insert-directory file "-lh")
+      (goto-char (point-min))
+      (dired-goto-next-file)
+      (delete-region (point) (point-at-eol))
+      (s-concat
+       " "
+       (s-chomp
+        (buffer-substring-no-properties (point-min) (point-max)))))))
+
+(defun bfs-top-mode (&optional parent)
+  "Mode use in `bfs-top-buffer-name' when `bfs' environment
+  is \"activated\" with `bfs' command.
+
+  See `bfs-top-buffer'."
+  (interactive)
+  (kill-all-local-variables)
+  (setq-local cursor-type nil)
+  (setq-local global-hl-line-mode nil)
+
+  (setq mode-line-format bfs-top-mode-line-format)
+  (face-remap-add-relative 'mode-line-inactive
+                            :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line-inactive
+                            :foreground bfs-top-mode-line-foreground)
+  (face-remap-add-relative 'mode-line
+                            :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line
+                            :foreground bfs-top-mode-line-foreground)
+
+  (setq major-mode 'bfs-top-mode)
+  (setq mode-name "bfs-top")
+  (setq buffer-read-only t))
+
+;;; bfs-mode
+
+;;;; Keymaps
+
+(defvar bfs-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") 'bfs-quit)
+    map)
+  "Keymap for `bfs-mode'.")
+
+(defvar bfs-child-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map bfs-mode-map)
+
+    (define-key map (kbd "p") 'bfs-previous)
+    (define-key map (kbd "n") 'bfs-next)
+    (define-key map (kbd "b") 'bfs-backward)
+    (define-key map (kbd "f") 'bfs-forward)
+    (define-key map (kbd "RET") 'bfs-forward)
+
+    (define-key map (kbd "d") 'bfs-scroll-preview-down-half-window)
+    (define-key map (kbd "s") 'bfs-scroll-preview-up-half-window)
+    (define-key map (kbd "u") 'bfs-scroll-down-half-window)
+    (define-key map (kbd "i") 'bfs-scroll-up-half-window)
+    (define-key map (kbd "<") 'bfs-beginning-of-buffer)
+    (define-key map (kbd ">") 'bfs-end-of-buffer)
+
+    (define-key map (kbd "C-f") 'bfs-find-file)
+
+    (define-key map (kbd "D") (lambda () (interactive) (dired default-directory)))
+    (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
+
+    (define-key map (kbd "q") 'bfs-quit)
+    map)
+  "Keymap for `bfs-mode' used in `bfs-child-buffer-name' buffer.")
+
+(defvar bfs-parent-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map bfs-mode-map)
+    map)
+  "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
+
+;;;; Highlight line in child and parent buffers
+
+(defvar-local bfs-line-overlay nil
+  "Overlay used by `bfs-mode' mode to highlight the current line.")
+
+(defun bfs-line-make-overlay ()
+  (let ((ol (make-overlay (point) (point))))
+    (overlay-put ol 'priority -50)
+    ol))
+
+(defun bfs-line-move-overlay (overlay)
+  "Move `bfs-line-overlay' to the line including the point by OVERLAY."
+  (move-overlay
+   overlay (line-beginning-position) (line-beginning-position 2)))
+
+(defun bfs-line-highlight ()
+  "Activate overlay on the current line."
+  (unless bfs-line-overlay
+    (setq bfs-line-overlay (bfs-line-make-overlay)))
+  (let ((background-dir (or (face-background 'bfs-directory nil t)
+                            (face-background 'default nil t)))
+        (foreground-dir (or (face-foreground 'bfs-directory nil t)
+                            (face-foreground 'default nil t)))
+        (background-file (or (face-background 'bfs-file nil t)
+                             (face-background 'default nil t)))
+        (foreground-file (or (face-foreground 'bfs-file nil t)
+                             (face-foreground 'default nil t)))
+        face)
+    (cond ((or (equal (buffer-name (current-buffer))
+                      bfs-parent-buffer-name)
+               (f-directory-p (bfs-child)))
+           (setq face `(:background ,foreground-dir
+                        :foreground ,background-dir
+                        :weight ultra-bold
+                        :extend t)))
+          (t (setq face `(:background ,foreground-file
+                          :foreground ,background-file
+                          :weight ultra-bold
+                          :extend t))))
+    (overlay-put bfs-line-overlay 'face face))
+  (overlay-put bfs-line-overlay 'window nil)
+  (bfs-line-move-overlay bfs-line-overlay))
+
+;;;; bfs-mode
+
+(defun bfs-mode (&optional parent)
+  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
+buffers when `bfs' environment is \"activated\" with `bfs' command.
+
+See `bfs-child-buffer' and `bfs-parent-buffer' commands."
+  (interactive)
+  (kill-all-local-variables)
+  (setq default-directory (or parent default-directory))
+  (setq-local cursor-type nil)
+  (setq-local global-hl-line-mode nil)
+  (bfs-line-highlight)
+  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
+  (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
+         (use-local-map bfs-child-mode-map))
+        ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
+         (use-local-map bfs-parent-mode-map))
+        (t t))
+  (setq major-mode 'bfs-mode
+        mode-name "bfs"
+        buffer-read-only t))
+
 ;;; Utilities
 
 (defun bfs-child ()
@@ -529,18 +688,6 @@ Intended to be called only once in `bfs'."
         (plist-put bfs-windows
                    :preview (bfs-preview child t))))
 
-;;; Find a file
-
-(defun bfs-find-file (file)
-  "Find a file with your completion framework and update `bfs' environment."
-  (interactive
-   (list (read-file-name "Find file:" nil default-directory t)))
-  (if (and (f-directory-p file)
-           (not (f-root-p file))
-           (bfs-first-readable-file file))
-      (bfs-update (bfs-first-readable-file file))
-    (bfs-update file)))
-
 ;;; Leave bfs
 
 (defvar bfs-do-not-check-after
@@ -636,114 +783,6 @@ before entering in the `bfs' environment."
   (bfs-clean)
   (jump-to-register :bfs))
 
-;;; bfs-mode
-
-;;;; Keymaps
-
-(defvar bfs-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") 'bfs-quit)
-    map)
-  "Keymap for `bfs-mode'.")
-
-(defvar bfs-child-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map bfs-mode-map)
-
-    (define-key map (kbd "p") 'bfs-previous)
-    (define-key map (kbd "n") 'bfs-next)
-    (define-key map (kbd "b") 'bfs-backward)
-    (define-key map (kbd "f") 'bfs-forward)
-    (define-key map (kbd "RET") 'bfs-forward)
-
-    (define-key map (kbd "d") 'bfs-scroll-preview-down-half-window)
-    (define-key map (kbd "s") 'bfs-scroll-preview-up-half-window)
-    (define-key map (kbd "u") 'bfs-scroll-down-half-window)
-    (define-key map (kbd "i") 'bfs-scroll-up-half-window)
-    (define-key map (kbd "<") 'bfs-beginning-of-buffer)
-    (define-key map (kbd ">") 'bfs-end-of-buffer)
-
-    (define-key map (kbd "C-f") 'bfs-find-file)
-
-    (define-key map (kbd "D") (lambda () (interactive) (dired default-directory)))
-    (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
-
-    (define-key map (kbd "q") 'bfs-quit)
-    map)
-  "Keymap for `bfs-mode' used in `bfs-child-buffer-name' buffer.")
-
-(defvar bfs-parent-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map bfs-mode-map)
-    map)
-  "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
-
-;;;; Highlight line in child and parent buffers
-
-(defvar-local bfs-line-overlay nil
-  "Overlay used by `bfs-mode' mode to highlight the current line.")
-
-(defun bfs-line-make-overlay ()
-  (let ((ol (make-overlay (point) (point))))
-    (overlay-put ol 'priority -50)
-    ol))
-
-(defun bfs-line-move-overlay (overlay)
-  "Move `bfs-line-overlay' to the line including the point by OVERLAY."
-  (move-overlay
-   overlay (line-beginning-position) (line-beginning-position 2)))
-
-(defun bfs-line-highlight ()
-  "Activate overlay on the current line."
-  (unless bfs-line-overlay
-    (setq bfs-line-overlay (bfs-line-make-overlay)))
-  (let ((background-dir (or (face-background 'bfs-directory nil t)
-                            (face-background 'default nil t)))
-        (foreground-dir (or (face-foreground 'bfs-directory nil t)
-                            (face-foreground 'default nil t)))
-        (background-file (or (face-background 'bfs-file nil t)
-                             (face-background 'default nil t)))
-        (foreground-file (or (face-foreground 'bfs-file nil t)
-                             (face-foreground 'default nil t)))
-        face)
-    (cond ((or (equal (buffer-name (current-buffer))
-                      bfs-parent-buffer-name)
-               (f-directory-p (bfs-child)))
-           (setq face `(:background ,foreground-dir
-                        :foreground ,background-dir
-                        :weight ultra-bold
-                        :extend t)))
-          (t (setq face `(:background ,foreground-file
-                          :foreground ,background-file
-                          :weight ultra-bold
-                          :extend t))))
-    (overlay-put bfs-line-overlay 'face face))
-  (overlay-put bfs-line-overlay 'window nil)
-  (bfs-line-move-overlay bfs-line-overlay))
-
-;;;; Mode
-
-(defun bfs-mode (&optional parent)
-  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
-buffers when `bfs' environment is \"activated\" with `bfs' command.
-
-See `bfs-child-buffer' and `bfs-parent-buffer' commands."
-  (interactive)
-  (kill-all-local-variables)
-  (setq default-directory (or parent default-directory))
-  (setq-local cursor-type nil)
-  (setq-local global-hl-line-mode nil)
-  (bfs-line-highlight)
-  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
-         (use-local-map bfs-child-mode-map))
-        ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
-         (use-local-map bfs-parent-mode-map))
-        (t t))
-  (setq major-mode 'bfs-mode
-        mode-name "bfs"
-        buffer-read-only t))
-
 ;;; bfs (main entry)
 
 (defvar bfs-is-active nil
@@ -816,45 +855,6 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (add-hook 'isearch-update-post-hook 'bfs-preview-update))))))
 
 (global-set-key (kbd "M-]") 'bfs)
-
-;;; bfs top
-
-(defun bfs-top-mode-line (&optional child)
-  "Return the string to be use in mode line of `bfs-top-buffer-name'."
-  (let ((file (or child (bfs-child))))
-    (with-temp-buffer
-      (insert-directory file "-lh")
-      (goto-char (point-min))
-      (dired-goto-next-file)
-      (delete-region (point) (point-at-eol))
-      (s-concat
-       " "
-       (s-chomp
-        (buffer-substring-no-properties (point-min) (point-max)))))))
-
-(defun bfs-top-mode (&optional parent)
-  "Mode use in `bfs-top-buffer-name' when `bfs' environment
-  is \"activated\" with `bfs' command.
-
-  See `bfs-top-buffer'."
-  (interactive)
-  (kill-all-local-variables)
-  (setq-local cursor-type nil)
-  (setq-local global-hl-line-mode nil)
-
-  (setq mode-line-format bfs-top-mode-line-format)
-  (face-remap-add-relative 'mode-line-inactive
-                            :background bfs-top-mode-line-background)
-  (face-remap-add-relative 'mode-line-inactive
-                            :foreground bfs-top-mode-line-foreground)
-  (face-remap-add-relative 'mode-line
-                            :background bfs-top-mode-line-background)
-  (face-remap-add-relative 'mode-line
-                            :foreground bfs-top-mode-line-foreground)
-
-  (setq major-mode 'bfs-top-mode)
-  (setq mode-name "bfs-top")
-  (setq buffer-read-only t))
 
 ;;; Footer
 
