@@ -336,13 +336,55 @@ The list is sorted alphabetically with the directories first."
 Leave point after the inserted text."
   (insert (s-join "\n" (bfs-ls dir))))
 
-;;; Create buffers
+;;; Create top, parent and child buffers
+
+(defvar bfs-top-buffer-name "*bfs-top*"
+  "Top buffer name.")
 
 (defvar bfs-parent-buffer-name "*bfs-parent*"
   "Parent buffer name.")
 
 (defvar bfs-child-buffer-name "*bfs-child*"
   "Child buffer name.")
+
+(defun bfs-top-line-truncate (len s)
+  "If S is longer than LEN, cut it down and add \"...\" to the beginning."
+  (let ((len-s (length s)))
+    (if (> len-s len)
+        (s-concat (propertize "..." 'face 'bfs-directory)
+                  (substring s (- len-s (- len 3)) len-s))
+      s)))
+
+(defun bfs-top-line-default (child)
+  "Return the string of CHILD path formated to be used in `bfs-top-buffer-name'."
+  (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
+                     (s-concat (f-parent child) "/")))
+         (filename (f-filename child))
+         (target (file-attribute-type (file-attributes child)))
+         (line (propertize parent 'face 'bfs-top-parent-directory)))
+    (if-let ((target-abs-path (and (stringp target) (f-join parent target))))
+        (-reduce #'s-concat
+                   `(,line
+                     ,(propertize filename 'face 'bfs-top-symlink-name)
+                     ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
+                     ,(if (file-directory-p target-abs-path)
+                          (propertize target 'face 'bfs-top-symlink-directory-target)
+                        (propertize target 'face 'bfs-top-symlink-file-target))))
+      (s-concat line (propertize filename 'face 'bfs-top-child-entry)))))
+
+(defun bfs-top-line-ellipsed (child)
+  "Return `bfs-top-line-default' truncated with ellipses at the beginning
+if `bfs-top-line-default' length is greater than the top window width."
+  (bfs-top-line-truncate (window-width (plist-get bfs-windows :top))
+                         (bfs-top-line-default child)))
+
+(defun bfs-top-buffer (&optional child)
+  "Produce `bfs-top-buffer-name' buffer show child information of CHILD."
+  (with-current-buffer (get-buffer-create bfs-top-buffer-name)
+    (read-only-mode -1)
+    (erase-buffer)
+    (insert (funcall bfs-top-line-function (or child (bfs-child))))
+    (bfs-top-mode)))
 
 (defun bfs-parent-buffer (parent)
   "Produce `bfs-parent-buffer-name' buffer with the listing
@@ -777,9 +819,6 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
 
 ;;; bfs top
 
-(defvar bfs-top-buffer-name "*bfs-top*"
-  "Top buffer name.")
-
 (defun bfs-top-mode-line (&optional child)
   "Return the string to be use in mode line of `bfs-top-buffer-name'."
   (let ((file (or child (bfs-child))))
@@ -792,45 +831,6 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
        " "
        (s-chomp
         (buffer-substring-no-properties (point-min) (point-max)))))))
-
-(defun bfs-top-line-truncate (len s)
-  "If S is longer than LEN, cut it down and add \"...\" to the beginning."
-  (let ((len-s (length s)))
-    (if (> len-s len)
-        (s-concat (propertize "..." 'face 'bfs-directory)
-                  (substring s (- len-s (- len 3)) len-s))
-      s)))
-
-(defun bfs-top-line-default (child)
-  "Return the string of CHILD path formated to be used in `bfs-top-buffer-name'."
-  (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
-                     (s-concat (f-parent child) "/")))
-         (filename (f-filename child))
-         (target (file-attribute-type (file-attributes child)))
-         (line (propertize parent 'face 'bfs-top-parent-directory)))
-    (if-let ((target-abs-path (and (stringp target) (f-join parent target))))
-        (-reduce #'s-concat
-                   `(,line
-                     ,(propertize filename 'face 'bfs-top-symlink-name)
-                     ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
-                     ,(if (file-directory-p target-abs-path)
-                          (propertize target 'face 'bfs-top-symlink-directory-target)
-                        (propertize target 'face 'bfs-top-symlink-file-target))))
-      (s-concat line (propertize filename 'face 'bfs-top-child-entry)))))
-
-(defun bfs-top-line-ellipsed (child)
-  "Return `bfs-top-line-default' truncated with ellipses at the beginning
-if `bfs-top-line-default' length is greater than the top window width."
-  (bfs-top-line-truncate (window-width (plist-get bfs-windows :top))
-                         (bfs-top-line-default child)))
-
-(defun bfs-top-buffer (&optional child)
-  "Produce `bfs-top-buffer-name' buffer show child information of CHILD."
-  (with-current-buffer (get-buffer-create bfs-top-buffer-name)
-    (read-only-mode -1)
-    (erase-buffer)
-    (insert (funcall bfs-top-line-function (or child (bfs-child))))
-    (bfs-top-mode)))
 
 (defun bfs-top-mode (&optional parent)
   "Mode use in `bfs-top-buffer-name' when `bfs' environment
