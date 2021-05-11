@@ -543,6 +543,11 @@ Intended to be called only once in `bfs'."
 
 ;;; Leave bfs
 
+(defvar bfs-do-not-check-after
+  '(bfs bfs-backward bfs-forward bfs-find-file)
+  "List of commands after which we don't want to check the validity of
+`bfs' environment.")
+
 (defun bfs-valid-layout-p ()
   "Return t if the window layout in `bfs-frame' frame
 corresponds to the `bfs' environment layout."
@@ -563,11 +568,6 @@ corresponds to the `bfs' environment layout."
                     bfs-child-buffer-name)
            (string= (buffer-name (window-buffer (window-in-direction 'right preview-win t nil t)))
                     bfs-parent-buffer-name)))))
-
-(defvar bfs-do-not-check-after
-  '(bfs bfs-backward bfs-forward bfs-find-file)
-  "List of commands after which we don't want to check the validity of
-`bfs' environment.")
 
 (defun bfs-check-environment ()
   "Leave `bfs' environment if it isn't valid.
