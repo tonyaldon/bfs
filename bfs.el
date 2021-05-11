@@ -594,7 +594,7 @@ Used internally.")
 (defvar bfs-windows nil
   "Plist that store `bfs' windows information.
 Used internally.
-Properties of this plist are: :parent, :child, :preview")
+Properties of this plist are: :top, :parent, :child, :preview.")
 
 (defvar bfs-visited-file-buffers nil
   "List of live buffers visited with `bfs-preview' function
@@ -770,6 +770,8 @@ before entering in the `bfs' environment."
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
+    (setq window-sides-vertical bfs-window-sides-vertical-before)
+    (setq bfs-window-sides-vertical-before nil)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
     (when (get-buffer bfs-child-buffer-name)
@@ -793,6 +795,10 @@ Used internally.")
 (defvar bfs-buffer-list-before nil
   "List of all live buffers when entering in the `bfs' environment.
 Used internally.")
+
+(defvar bfs-window-sides-vertical-before nil
+  "Use to store user value of `window-sides-vertical' before
+activating `bfs' environment.")
 
 (defun bfs (&optional file)
   "Start a `bfs' (Browse File System) environment in the `selected-frame'.
@@ -848,6 +854,8 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
+        (setq bfs-window-sides-vertical-before window-sides-vertical)
+        (setq window-sides-vertical nil)
         (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
