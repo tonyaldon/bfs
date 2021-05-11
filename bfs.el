@@ -129,6 +129,13 @@ environment and visit that file."
 
 ;;; Utilities
 
+(defun bfs-child ()
+  "Return file path corresponding to the current child entry.
+If `bfs-child-buffer-name' isn't lived return nil."
+  (when (buffer-live-p (get-buffer bfs-child-buffer-name))
+    (with-current-buffer bfs-child-buffer-name
+      (f-join default-directory (bfs-child-entry)))))
+
 (defun bfs-child-entry ()
   "Return the current child entry."
   (with-current-buffer bfs-child-buffer-name
@@ -138,6 +145,12 @@ environment and visit that file."
   "Return the current parent entry."
   (with-current-buffer bfs-child-buffer-name
     (f-filename default-directory)))
+
+(defun bfs-goto-entry (entry)
+  "Move the cursor to the line ENTRY."
+  (goto-char (point-min))
+  (search-forward-regexp (s-concat "^" entry) nil t)
+  (beginning-of-line))
 
 (defun bfs-file-readable-p (file)
   "Return t if FILE is a readable file satisfaying:
@@ -173,11 +186,36 @@ See `bfs-first-readable-file'."
            (dired-file-name-at-point))
           ((bfs-first-readable-file default-directory)))))
 
-(defun bfs-goto-entry (entry)
-  "Move the cursor to the line ENTRY."
-  (goto-char (point-min))
-  (search-forward-regexp (s-concat "^" entry) nil t)
-  (beginning-of-line))
+(defun bfs-child-is-valid-p (child)
+  "Return t if CHILD file can be previewed in `bfs' environment."
+  (not (cond ((not (f-exists-p child))
+              (message "File doesn't exist: %s" child))
+             ((and (f-directory-p child)
+                   (not (file-accessible-directory-p child)))
+              (message "Permission denied: %s" child))
+             ((not (bfs-file-readable-p child))
+              (message (s-concat "File is not readable, or is too large, "
+                                 "or have discarded extensions: %s")
+                       child)))))
+
+(defun bfs-preview-buffer-name ()
+  "Return the buffer-name of the preview window if lived.
+Return nil if preview window isn't lived.
+
+See `bfs-windows'."
+  (when (window-live-p (plist-get bfs-windows :preview))
+    (buffer-name (window-buffer (plist-get bfs-windows :preview)))))
+
+(defun bfs-preview-matches-child-p ()
+  "Return t if buffer of preview window matches the child entry."
+  (when-let* ((child (bfs-child))
+              (preview-buffer-name (bfs-preview-buffer-name))
+              (preview-file-path
+               (with-current-buffer preview-buffer-name
+                 (if (equal major-mode 'dired-mode)
+                     default-directory
+                   (buffer-file-name)))))
+    (f-equal-p preview-file-path child)))
 
 ;;; List directories
 
@@ -316,18 +354,6 @@ cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
   (bfs-preview (bfs-child)))
 
-(defun bfs-child-is-valid-p (child)
-  "Return t if CHILD file can be previewed in `bfs' environment."
-  (not (cond ((not (f-exists-p child))
-              (message "File doesn't exist: %s" child))
-             ((and (f-directory-p child)
-                   (not (file-accessible-directory-p child)))
-              (message "Permission denied: %s" child))
-             ((not (bfs-file-readable-p child))
-              (message (s-concat "File is not readable, or is too large, "
-                                 "or have discarded extensions: %s")
-                       child)))))
-
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
   (when (bfs-child-is-valid-p child)
@@ -387,32 +413,6 @@ Intended to be called only once in `bfs'."
     (bfs-update file)))
 
 ;;; Leave bfs
-
-(defun bfs-child ()
-  "Return file path corresponding to the current child entry.
-If `bfs-child-buffer-name' isn't lived return nil."
-  (when (buffer-live-p (get-buffer bfs-child-buffer-name))
-    (with-current-buffer bfs-child-buffer-name
-      (f-join default-directory (bfs-child-entry)))))
-
-(defun bfs-preview-buffer-name ()
-  "Return the buffer-name of the preview window if lived.
-Return nil if preview window isn't lived.
-
-See `bfs-windows'."
-  (when (window-live-p (plist-get bfs-windows :preview))
-    (buffer-name (window-buffer (plist-get bfs-windows :preview)))))
-
-(defun bfs-preview-matches-child-p ()
-  "Return t if buffer of preview window matches the child entry."
-  (when-let* ((child (bfs-child))
-              (preview-buffer-name (bfs-preview-buffer-name))
-              (preview-file-path
-               (with-current-buffer preview-buffer-name
-                 (if (equal major-mode 'dired-mode)
-                     default-directory
-                   (buffer-file-name)))))
-    (f-equal-p preview-file-path child)))
 
 (defun bfs-valid-layout-p ()
   "Return t if the window layout in `bfs-frame' frame
