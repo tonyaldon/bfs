@@ -8,6 +8,90 @@
 (require 'ls-lisp)
 (require 'dired)
 
+;;; User options
+
+(defgroup bfs nil "Browsing File System." :group 'files)
+
+(defface bfs-directory
+  '((t (:inherit dired-directory)))
+  "Face used for subdirectories."
+  :group 'bfs)
+
+(defface bfs-file
+  '((t (:inherit default)))
+  "Face used for files."
+  :group 'bfs)
+
+(defface bfs-top-parent-directory
+  '((t (:inherit dired-header)))
+  "Face used for parent directory path in `bfs-top-buffer-name' buffer."
+  :group 'bfs)
+
+(defface bfs-top-child-entry
+  '((t (:inherit bfs-file :weight ultra-bold)))
+  "Face used for child entry in `bfs-top-buffer-name' buffer."
+  :group 'bfs)
+
+(defface bfs-top-symlink-name
+  '((t (:inherit dired-symlink)))
+  "Face of symlink name in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-arrow
+  '((t (:inherit dired-symlink)))
+  "Face of the arrow link used for symlinks in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-directory-target
+  '((t (:inherit bfs-directory)))
+  "Face of symlink target when it is a directory in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-file-target
+  '((t (:inherit bfs-file)))
+  "Face of symlink target when it is a file in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defvar bfs-top-mode-line-background
+  (face-background 'mode-line-inactive nil t)
+  "Background color of `bfs-top-buffer-name' mode line.
+You can change the value with any hexa color.  For instance, if you
+want the background to be white, set `bfs-top-mode-line-background'
+to \"#ffffff\".")
+
+(defvar bfs-top-mode-line-foreground
+  (face-foreground 'mode-line-inactive nil t)
+  "Foreground color of `bfs-top-buffer-name' mode line.
+You can change the value with any hexa color.  For instance, if you
+want the foreground to be black, set `bfs-top-mode-line-background'
+to \"#000000\".")
+
+(defvar bfs-top-mode-line-format
+  `((:eval (format "%s" (bfs-top-mode-line))))
+  "The mode line format used in `bfs-top-buffer-name'.
+See `bfs-top-mode-line'.
+
+And see `mode-line-format' if you want to customize
+`bfs-top-mode-line-format'.")
+
+(defvar bfs-top-line-function 'bfs-top-line-ellipsed
+  "Function that return the formated text used in `bfs-top-buffer-name'.
+This function takes one argument CHILD (a file path corresponding
+to the current child entry) and return the formatted string obtained
+from CHILD.
+
+See `bfs-top-line-ellipsed', `bfs-top-line-default', `bfs-child'.")
+
+(defvar bfs-kill-buffer-eagerly nil
+  "When t, kill opened buffer upon a new child entry file is previewed.
+When nil, opened buffers are killed when leaving `bfs' environment.")
+
+(defvar bfs-ignored-extensions '("mkv" "iso" "mp4" "jpg" "png")
+  "Don't preview files with those extensions.")
+
+(defvar bfs-max-size large-file-warning-threshold
+  "Don't preview files larger than this size.")
+
 ;;; Movements
 
 (defvar bfs-visited-backward nil
@@ -253,16 +337,6 @@ Leave point after the inserted text."
   (insert (s-join "\n" (bfs-ls dir))))
 
 ;;; Create buffers
-
-(defvar bfs-kill-buffer-eagerly nil
-  "When t, kill opened buffer upon a new child entry file is previewed.
-When nil, opened buffers are killed when leaving `bfs' environment.")
-
-(defvar bfs-ignored-extensions '("mkv" "iso" "mp4" "jpg" "png")
-  "Don't preview files with those extensions.")
-
-(defvar bfs-max-size large-file-warning-threshold
-  "Don't preview files larger than this size.")
 
 (defvar bfs-parent-buffer-name "*bfs-parent*"
   "Parent buffer name.")
@@ -522,19 +596,7 @@ before entering in the `bfs' environment."
 
 ;;; bfs-mode
 
-;;;; Variables
-
-(defgroup bfs nil "Browsing File System." :group 'files)
-
-(defface bfs-directory
-  '((t (:inherit dired-directory)))
-  "Face used for subdirectories."
-  :group 'bfs)
-
-(defface bfs-file
-  '((t (:inherit default)))
-  "Face used for files."
-  :group 'bfs)
+;;;; Keymaps
 
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
@@ -718,50 +780,6 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
 (defvar bfs-top-buffer-name "*bfs-top*"
   "Top buffer name.")
 
-(defface bfs-top-parent-directory
-  '((t (:inherit dired-header)))
-  "Face used for parent directory path in `bfs-top-buffer-name' buffer."
-  :group 'bfs)
-
-(defface bfs-top-child-entry
-  '((t (:inherit bfs-file :weight ultra-bold)))
-  "Face used for child entry in `bfs-top-buffer-name' buffer."
-  :group 'bfs)
-
-(defface bfs-top-symlink-arrow
-  '((t (:inherit dired-symlink)))
-  "Face of the arrow link used for symlinks in `bfs-top-buffer-name'."
-  :group 'bfs)
-
-(defface bfs-top-symlink-name
-  '((t (:inherit dired-symlink)))
-  "Face of symlink name in `bfs-top-buffer-name'."
-  :group 'bfs)
-
-(defface bfs-top-symlink-directory-target
-  '((t (:inherit bfs-directory)))
-  "Face of symlink target when it is a directory in `bfs-top-buffer-name'."
-  :group 'bfs)
-
-(defface bfs-top-symlink-file-target
-  '((t (:inherit bfs-file)))
-  "Face of symlink target when it is a file in `bfs-top-buffer-name'."
-  :group 'bfs)
-
-(defvar bfs-top-mode-line-background
-  (face-background 'mode-line-inactive nil t)
-  "Background color of `bfs-top-buffer-name' mode line.
-You can change the value with any hexa color.  For instance, if you
-want the background to be white, set `bfs-top-mode-line-background'
-to \"#ffffff\".")
-
-(defvar bfs-top-mode-line-foreground
-  (face-foreground 'mode-line-inactive nil t)
-  "Foreground color of `bfs-top-buffer-name' mode line.
-You can change the value with any hexa color.  For instance, if you
-want the foreground to be black, set `bfs-top-mode-line-background'
-to \"#000000\".")
-
 (defun bfs-top-mode-line (&optional child)
   "Return the string to be use in mode line of `bfs-top-buffer-name'."
   (let ((file (or child (bfs-child))))
@@ -774,14 +792,6 @@ to \"#000000\".")
        " "
        (s-chomp
         (buffer-substring-no-properties (point-min) (point-max)))))))
-
-(defvar bfs-top-line-function 'bfs-top-line-ellipsed
-  "Function that return the formated text used in `bfs-top-buffer-name'.
-This function takes one argument CHILD (a file path corresponding
-to the current child entry) and return the formatted string obtained
-from CHILD.
-
-See `bfs-top-line-ellipsed', `bfs-top-line-default', `bfs-child'.")
 
 (defun bfs-top-line-truncate (len s)
   "If S is longer than LEN, cut it down and add \"...\" to the beginning."
@@ -821,14 +831,6 @@ if `bfs-top-line-default' length is greater than the top window width."
     (erase-buffer)
     (insert (funcall bfs-top-line-function (or child (bfs-child))))
     (bfs-top-mode)))
-
-(defvar bfs-top-mode-line-format
-  `((:eval (format "%s" (bfs-top-mode-line))))
-  "The mode line format used in `bfs-top-buffer-name'.
-See `bfs-top-mode-line'.
-
-And see `mode-line-format' if you want to customize
-`bfs-top-mode-line-format'.")
 
 (defun bfs-top-mode (&optional parent)
   "Mode use in `bfs-top-buffer-name' when `bfs' environment
