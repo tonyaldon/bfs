@@ -6,6 +6,7 @@
 (require 'f)
 (require 'dash)
 (require 'ls-lisp)
+(require 'dired)
 
 ;;; Movements
 
@@ -282,6 +283,7 @@ of the directory PARENT and the cursor at CHILD entry."
 (defun bfs-preview (child &optional first-time)
   "Preview file CHILD on the right window.
 When FIRST-TIME is non-nil, set the window layout."
+  (bfs-top-update)
   (let (preview-window)
     (cond ((bfs-preview-matches-child-p) nil) ; do nothing
           ((member (file-name-extension child)
@@ -337,6 +339,7 @@ cursor has moved to using \"isearch\" commands in
                             (f-filename (bfs-first-readable-file "/")))))
         (setq parent (f-dirname child))
         (setq child-entry (f-filename child)))
+      (bfs-top-update)
       (bfs-parent-buffer parent)
       (bfs-child-buffer parent child-entry)
       (bfs-preview (f-join parent child-entry)))))
@@ -348,9 +351,15 @@ Intended to be called only once in `bfs'."
   (when (window-parameter (selected-window) 'window-side)
     (other-window 1))
   (delete-other-windows)
+  (bfs-top-buffer child)
   (bfs-parent-buffer (f-dirname child))
   (bfs-child-buffer (f-dirname child) (f-filename child))
   (setq bfs-frame (selected-frame))
+  (setq bfs-windows
+        (plist-put bfs-windows
+                   :top (display-buffer
+                         bfs-top-buffer-name
+                         bfs-top-window-parameters)))
   (setq bfs-windows
         (plist-put bfs-windows
                    :parent (display-buffer
@@ -420,7 +429,7 @@ corresponds to the `bfs' environment layout."
                            '(" *transient*" " *LV*"))
                    (window-list))))
     (when (-all-p 'window-live-p `(,parent-win ,child-win ,preview-win))
-      (and (equal (length normal-window-list) 3)
+      (and (equal (length normal-window-list) 4)
            (string= (buffer-name (window-buffer (window-in-direction 'right parent-win)))
                     bfs-child-buffer-name)
            (string= (buffer-name (window-buffer (window-in-direction 'right preview-win t nil t)))
@@ -456,7 +465,7 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
     (when (window-parameter (selected-window) 'window-side)
       (other-window 1))
     (delete-other-windows))
-   (t nil)))
+   (t (bfs-top-update))))
 
 (defun bfs-clean-if-frame-deleted (_frame)
   "Clean `bfs' environment if the frame that was running it has been deleted.
@@ -497,7 +506,9 @@ before entering in the `bfs' environment."
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
     (when (get-buffer bfs-child-buffer-name)
-      (kill-buffer bfs-child-buffer-name))))
+      (kill-buffer bfs-child-buffer-name))
+    (when (get-buffer bfs-top-buffer-name)
+      (kill-buffer bfs-top-buffer-name))))
 
 (defun bfs-quit ()
   "Leave `bfs-mode' and restore previous window configuration."
@@ -688,6 +699,158 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (add-hook 'isearch-update-post-hook 'bfs-preview-update))))))
 
 (global-set-key (kbd "M-]") 'bfs)
+
+;;; bfs top
+
+(defvar bfs-top-buffer-name "*bfs-top*"
+  "Top buffer name.")
+
+(defvar bfs-top-window-parameters
+  '(display-buffer-in-side-window
+    (side . top)
+    (window-height . 2)
+    (window-parameters . ((no-other-window . t)))))
+
+(defface bfs-top-parent-directory
+  '((t (:inherit dired-header)))
+  "Face used for parent directory path in `bfs-top-buffer-name' buffer."
+  :group 'bfs)
+
+(defface bfs-top-child-entry
+  '((t (:inherit bfs-file :weight ultra-bold)))
+  "Face used for child entry in `bfs-top-buffer-name' buffer."
+  :group 'bfs)
+
+(defface bfs-top-symlink-arrow
+  '((t (:inherit dired-symlink)))
+  "Face of the arrow link used for symlinks in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-name
+  '((t (:inherit dired-symlink)))
+  "Face of symlink name in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-directory-target
+  '((t (:inherit bfs-directory)))
+  "Face of symlink target when it is a directory in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defface bfs-top-symlink-file-target
+  '((t (:inherit bfs-file)))
+  "Face of symlink target when it is a file in `bfs-top-buffer-name'."
+  :group 'bfs)
+
+(defvar bfs-top-mode-line-background
+  (face-background 'mode-line-inactive nil t)
+  "Background color of `bfs-top-buffer-name' mode line.
+You can change the value with any hexa color.  For instance, if you
+want the background to be white, set `bfs-top-mode-line-background'
+to \"#ffffff\".")
+
+(defvar bfs-top-mode-line-foreground
+  (face-foreground 'mode-line-inactive nil t)
+  "Foreground color of `bfs-top-buffer-name' mode line.
+You can change the value with any hexa color.  For instance, if you
+want the foreground to be black, set `bfs-top-mode-line-background'
+to \"#000000\".")
+
+(defun bfs-top-mode-line (&optional child)
+  "Return the string to be use in mode line of `bfs-top-buffer-name'."
+  (let ((file (or child (bfs-child))))
+    (with-temp-buffer
+      (insert-directory file "-lh")
+      (goto-char (point-min))
+      (dired-goto-next-file)
+      (delete-region (point) (point-at-eol))
+      (s-concat
+       " "
+       (s-chomp
+        (buffer-substring-no-properties (point-min) (point-max)))))))
+
+(defvar bfs-top-line-function 'bfs-top-line-ellipsed
+  "Function that return the formated text used in `bfs-top-buffer-name'.
+This function takes one argument CHILD (a file path corresponding
+to the current child entry) and return the formatted string obtained
+from CHILD.
+
+See `bfs-top-line-ellipsed', `bfs-top-line-default', `bfs-child'.")
+
+(defun bfs-top-line-truncate (len s)
+  "If S is longer than LEN, cut it down and add \"...\" to the beginning."
+  (let ((len-s (length s)))
+    (if (> len-s len)
+        (s-concat (propertize "..." 'face 'bfs-directory)
+                  (substring s (- len-s (- len 3)) len-s))
+      s)))
+
+(defun bfs-top-line-default (child)
+  "Return the string of CHILD path formated to be used in `bfs-top-buffer-name'."
+  (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
+                     (s-concat (f-parent child) "/")))
+         (filename (f-filename child))
+         (target (file-attribute-type (file-attributes child)))
+         (line (propertize parent 'face 'bfs-top-parent-directory)))
+    (if-let ((target-abs-path (and (stringp target) (f-join parent target))))
+        (-reduce #'s-concat
+                   `(,line
+                     ,(propertize filename 'face 'bfs-top-symlink-name)
+                     ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
+                     ,(if (file-directory-p target-abs-path)
+                          (propertize target 'face 'bfs-top-symlink-directory-target)
+                        (propertize target 'face 'bfs-top-symlink-file-target))))
+      (s-concat line (propertize filename 'face 'bfs-top-child-entry)))))
+
+(defun bfs-top-line-ellipsed (child)
+  "Return `bfs-top-line-default' truncated with ellipses at the beginning
+if `bfs-top-line-default' length is greater than the top window width."
+  (bfs-top-line-truncate (window-width (plist-get bfs-windows :top))
+                         (bfs-top-line-default child)))
+
+(defun bfs-top-buffer (&optional child)
+  "Produce `bfs-top-buffer-name' buffer show child information of CHILD."
+  (with-current-buffer (get-buffer-create bfs-top-buffer-name)
+    (read-only-mode -1)
+    (erase-buffer)
+    (insert (funcall bfs-top-line-function (or child (bfs-child))))
+    (bfs-top-mode)))
+
+(defun bfs-top-update ()
+  "Update `bfs-top-buffer-name' and redisplay it."
+  (bfs-top-buffer)
+  (display-buffer bfs-top-buffer-name bfs-top-window-parameters))
+
+(defvar bfs-top-mode-line-format
+  `((:eval (format "%s" (bfs-top-mode-line))))
+  "The mode line format used in `bfs-top-buffer-name'.
+See `bfs-top-mode-line'.
+
+And see `mode-line-format' if you want to customize
+`bfs-top-mode-line-format'.")
+
+(defun bfs-top-mode (&optional parent)
+  "Mode use in `bfs-top-buffer-name' when `bfs' environment
+  is \"activated\" with `bfs' command.
+
+  See `bfs-top-buffer'."
+  (interactive)
+  (kill-all-local-variables)
+  (setq-local cursor-type nil)
+  (setq-local global-hl-line-mode nil)
+
+  (setq mode-line-format bfs-top-mode-line-format)
+  (face-remap-add-relative 'mode-line-inactive
+                            :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line-inactive
+                            :foreground bfs-top-mode-line-foreground)
+  (face-remap-add-relative 'mode-line
+                            :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line
+                            :foreground bfs-top-mode-line-foreground)
+
+  (setq major-mode 'bfs-top-mode)
+  (setq mode-name "bfs-top")
+  (setq buffer-read-only t))
 
 ;;; Footer
 
