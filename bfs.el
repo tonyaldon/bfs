@@ -270,11 +270,6 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 (defvar bfs-child-buffer-name "*bfs-child*"
   "Child buffer name.")
 
-(defvar bfs-is-active nil
-  "t means that `bfs' environment has been turned on
-in the frame `bfs-frame'.
-Used internally.")
-
 (defun bfs-parent-buffer (parent)
   "Produce `bfs-parent-buffer-name' buffer with the listing
 of the directory containing PARENT directory."
@@ -491,11 +486,6 @@ Intended to be added to `after-delete-frame-functions'."
   (unless (frame-live-p bfs-frame)
     (bfs-clean)))
 
-
-(defvar bfs-buffer-list-before nil
-  "List of all live buffers when entering in the `bfs' environment.
-Used internally.")
-
 (defun bfs-kill-visited-file-buffers ()
   "Kill the buffers used to preview files with `bfs-preview'.
 This doesn't kill buffers in `bfs-buffer-list-before' that was lived
@@ -651,6 +641,15 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
         buffer-read-only t))
 
 ;;; bfs (main entry)
+
+(defvar bfs-is-active nil
+  "t means that `bfs' environment has been turned on
+in the frame `bfs-frame'.
+Used internally.")
+
+(defvar bfs-buffer-list-before nil
+  "List of all live buffers when entering in the `bfs' environment.
+Used internally.")
 
 (defun bfs (&optional file)
   "Start a `bfs' (Browse File System) environment in the `selected-frame'.
