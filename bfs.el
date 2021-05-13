@@ -676,12 +676,18 @@ When FIRST-TIME is non-nil, set the window layout."
            nil) ; do nothing
           ((member (file-name-extension child)
                    bfs-ignored-extensions)
-           (bfs-preview-buffer child "File ignored due to its extension")
+           (bfs-preview-buffer child
+                               (format "File ignored due to its extension: %s"
+                                       (file-name-extension child)))
            (display-buffer (get-buffer bfs-preview-buffer-name) t))
           ((and (file-exists-p child)
                 (> (file-attribute-size (file-attributes (file-truename child)))
                    bfs-max-size))
-           (bfs-preview-buffer child "File ignored due to its size")
+           (bfs-preview-buffer child
+                               (format "File ignored due to its size: %s"
+                                       (file-size-human-readable
+                                        (file-attribute-size
+                                         (file-attributes (file-truename child))))))
            (display-buffer (get-buffer bfs-preview-buffer-name) t))
           ((bfs-broken-symlink-p child)
            (bfs-preview-buffer child "Symlink is broken")
