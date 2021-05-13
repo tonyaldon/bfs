@@ -1,11 +1,15 @@
 ;;; bfs.el --- Browse File System -*- lexical-binding: t; -*-
 
-;;; Packages
 
-(require 'f)
+;;; Commentary:
+
+
+;;; Code:
+
 (require 'dash)
-(require 'ls-lisp)
 (require 'dired)
+(require 'f)
+(require 'ls-lisp)
 
 ;;; User options
 
@@ -101,12 +105,14 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 ;;; Movements
 
 (defvar bfs-visited-backward nil
-  "List of child files that have been visited.  Child files are
+  "List of child files that have been visited.
+Child files are
 added uniquely to `bfs-visited-backward' only when we use
 `bfs-backward' command.  This allow `bfs-forward' to be smart.")
 
 (defun bfs-get-visited-backward (child)
-  "Return the element of `bfs-visited-backward' which directory name match CHILD.
+  "Return the last file in `bfs-visited-backward'.
+This directory name of this file must match CHILD.
 Return nil if there is no matches."
   (--first (f-equal-p child (f-dirname it)) bfs-visited-backward))
 
@@ -220,7 +226,7 @@ environment and visit that file."
 ;;; Find a file
 
 (defun bfs-find-file (file)
-  "Find a file with your completion framework and update `bfs' environment."
+  "Find a FILE with your completion framework and update `bfs' environment."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
   (if (and (file-directory-p file)
@@ -232,7 +238,9 @@ environment and visit that file."
 ;;; bfs-top-mode
 
 (defun bfs-top-mode-line (&optional child)
-  "Return the string to be use in mode line of `bfs-top-buffer-name'."
+  "Return the string that describe CHILD file.
+This string is used in the mode line of `bfs-top-buffer-name' buffer.
+If CHILD is nil, default to `bfs-child'."
   (let ((file (or child (bfs-child))))
     (with-temp-buffer
       (insert-directory file "-lh")
@@ -243,10 +251,8 @@ environment and visit that file."
       (concat " " (buffer-substring-no-properties (point-min) (point-max))))))
 
 (defun bfs-top-mode ()
-  "Mode use in `bfs-top-buffer-name' when `bfs' environment
-  is \"activated\" with `bfs' command.
-
-  See `bfs-top-buffer'."
+  "Mode use in `bfs-top-buffer-name' buffer.
+See `bfs-top-buffer'."
   (interactive)
   (kill-all-local-variables)
   (setq-local cursor-type nil)
@@ -325,6 +331,7 @@ environment and visit that file."
   "Overlay used by `bfs-mode' mode to highlight the current line.")
 
 (defun bfs-line-make-overlay ()
+  "Make the overlay used in `bfs-mode'."
   (let ((ol (make-overlay (point) (point))))
     (overlay-put ol 'priority -50)
     ol))
@@ -365,9 +372,8 @@ environment and visit that file."
 ;;;; bfs-mode
 
 (defun bfs-mode (&optional parent)
-  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name'
-buffers when `bfs' environment is \"activated\" with `bfs' command.
-
+  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
+In `bfs-mode', `default-directory' is set to PARENT.
 See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (interactive)
   (kill-all-local-variables)
@@ -423,8 +429,7 @@ See `file-readable-p'."
           bfs-max-size)))
 
 (defun bfs-first-readable-file (dir)
-  "Return the first file/directory of DIR directory satisfaying
-`bfs-file-readable-p'.
+  "Return the first file of DIR directory satisfaying `bfs-file-readable-p'.
 
 Return nil if none are found.
 Return an empty string if DIR directory is empty."
@@ -462,7 +467,7 @@ Return nil if not."
   (and (file-symlink-p file) (not (file-exists-p (file-truename file)))))
 
 (defun bfs-preview-current-buffer-name ()
-  "Return the buffer-name of the preview window if lived.
+  "Return the `buffer-name' of the preview window if lived.
 Return nil if preview window isn't lived.
 
 See `bfs-windows'."
@@ -470,7 +475,7 @@ See `bfs-windows'."
     (buffer-name (window-buffer (plist-get bfs-windows :preview)))))
 
 (defun bfs-preview-matches-child-p ()
-  "Return t if buffer of preview window matches the child entry."
+  "Return t if buffer in preview window match the child entry."
   (when-let* ((child (bfs-child))
               (preview-buffer-name (bfs-preview-current-buffer-name))
               (preview-file-path
@@ -534,8 +539,8 @@ Leave point after the inserted text."
   "Child buffer name.")
 
 (defvar bfs-preview-buffer-name " *bfs-preview* "
-  "Preview buffer name when we are not visiting a file,
-but just showing information related to the reason
+  "Preview buffer name when we are not visiting a file.
+This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
 
 (defvar-local bfs-preview-buffer-file-name nil)
@@ -572,8 +577,9 @@ we are not previewing `bfs-child' file.")
       (concat line (propertize filename 'face 'bfs-top-child-entry)))))
 
 (defun bfs-top-line-ellipsed (child)
-  "Return `bfs-top-line-default' truncated with ellipses at the beginning
-if `bfs-top-line-default' length is greater than the top window width."
+  "Return `bfs-top-line-default' truncated with ellipses at the beginning.
+The truncation is done only if `bfs-top-line-default' length showing CHILD
+path is greater than the top window width."
   (bfs-top-line-truncate (window-width (plist-get bfs-windows :top))
                          (bfs-top-line-default child)))
 
@@ -586,8 +592,8 @@ if `bfs-top-line-default' length is greater than the top window width."
     (bfs-top-mode)))
 
 (defun bfs-parent-buffer (parent)
-  "Produce `bfs-parent-buffer-name' buffer with the listing
-of the directory containing PARENT directory."
+  "Produce `bfs-parent-buffer-name' buffer.
+The produced buffer contains the listing of the directory PARENT."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
@@ -597,8 +603,9 @@ of the directory containing PARENT directory."
     (bfs-mode parent)))
 
 (defun bfs-child-buffer (parent child-entry)
-  "Produce `bfs-child-buffer-name' buffer with the listing
-of the directory PARENT and the cursor at CHILD entry."
+  "Produce `bfs-child-buffer-name' buffer.
+The produced buffer contains the listing of the directory PARENT
+and put the cursor at CHILD-ENTRY."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
@@ -648,8 +655,7 @@ Used internally.
 Properties of this plist are: :top, :parent, :child, :preview.")
 
 (defvar bfs-visited-file-buffers nil
-  "List of live buffers visited with `bfs-preview' function
-during a `bfs' session.
+  "List of live buffers visited with `bfs-preview'during a `bfs' session.
 Used internally.")
 
 (defun bfs-top-update ()
@@ -736,9 +742,8 @@ cursor has moved to using \"isearch\" commands in
       (bfs-preview (f-join parent child-entry)))))
 
 (defun bfs-display (child)
-  "Display `bfs' buffers in a 3 panes layout for PARENT and
-CHILD-ENTRY arguments.
-Intended to be called only once in `bfs'."
+  "Display `bfs' buffers in the current windows according to CHILD.
+CHILD must be a file.  Intended to be called only once in `bfs'."
   (when (window-parameter (selected-window) 'window-side)
     (other-window 1))
   (delete-other-windows)
@@ -779,12 +784,10 @@ Intended to be called only once in `bfs'."
     isearch-repeat-backward
     isearch-backward
     bfs-find-file)
-  "List of commands after which we don't want to check the validity of
-`bfs' environment.")
+  "List of commands after which we don't want to check `bfs' validity.")
 
 (defun bfs-valid-layout-p ()
-  "Return t if the window layout in `bfs-frame' frame
-corresponds to the `bfs' environment layout."
+  "Return t if the window layout in `bfs-frame' frame is valid."
   (let ((parent-win (plist-get bfs-windows :parent))
         (child-win (plist-get bfs-windows :child))
         (preview-win (plist-get bfs-windows :preview))
@@ -807,7 +810,7 @@ corresponds to the `bfs' environment layout."
   "Leave `bfs' environment if it isn't valid.
 
 We use `bfs-check-environment' in `window-configuration-change-hook'.
-This ensure not to end in an inconsistent (unwanted) emacs state
+This ensure not to end in an inconsistent (unwanted) Emacs state
 after running any command that invalidate `bfs' environment.
 
 For instance, your `bfs' environment stops to be valid:
@@ -846,7 +849,7 @@ before entering in the `bfs' environment."
   (setq bfs-buffer-list-before nil))
 
 (defun bfs-clean ()
-  "Leave `bfs' environment and clean emacs state."
+  "Leave `bfs' environment and clean Emacs state."
   (unless (window-minibuffer-p)
     (setq bfs-is-active nil)
     (remove-function after-delete-frame-functions 'bfs-clean-if-frame-deleted)
@@ -880,8 +883,7 @@ before entering in the `bfs' environment."
 ;;; bfs (main entry)
 
 (defvar bfs-is-active nil
-  "t means that `bfs' environment has been turned on
-in the frame `bfs-frame'.
+  "Non-nil means that `bfs' environment is active in `bfs-frame'.
 Used internally.")
 
 (defvar bfs-buffer-list-before nil
@@ -889,8 +891,7 @@ Used internally.")
 Used internally.")
 
 (defvar bfs-window-sides-vertical-before nil
-  "Use to store user value of `window-sides-vertical' before
-activating `bfs' environment.")
+  "Used to store user value of `window-sides-vertical'.")
 
 (defvar bfs-find-file-run-dired-before nil)
 
@@ -916,7 +917,7 @@ When you are in the child window (the middle window), you can:
 - \"jump\" to any file in your file system with `bfs-find-file', this
   automatically update `bfs' environment.
 
-In the child window, when you move the cursor with `isearch-forward'
+In the child window, when you move the cursor with functions `isearch-forward'
 or `isearch-backward', this will automatically preview the file you
 move to.
 
@@ -964,3 +965,5 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
 ;;; Footer
 
 (provide 'bfs)
+
+;;; bfs.el ends here
