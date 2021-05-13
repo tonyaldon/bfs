@@ -533,16 +533,22 @@ Leave point after the inserted text."
   (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
                      (s-concat (f-parent child) "/")))
          (filename (f-filename child))
-         (target (file-attribute-type (file-attributes child)))
          (line (propertize parent 'face 'bfs-top-parent-directory)))
-    (if-let ((target-abs-path (and (stringp target) (f-join parent target))))
-        (-reduce #'s-concat
-                   `(,line
-                     ,(propertize filename 'face 'bfs-top-symlink-name)
-                     ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
-                     ,(if (file-directory-p target-abs-path)
-                          (propertize target 'face 'bfs-top-symlink-directory-target)
-                        (propertize target 'face 'bfs-top-symlink-file-target))))
+    (if-let ((target (file-symlink-p child)))
+        (-reduce
+         #'s-concat
+         `(,line
+           ,(propertize filename
+                        'face (if (bfs-broken-symlink-p child)
+                                  'bfs-top-broken-symlink
+                                'bfs-top-symlink-name))
+           ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
+           ,(propertize target
+                        'face (cond ((bfs-broken-symlink-p child)
+                                     'bfs-top-broken-symlink)
+                                    ((file-directory-p (file-truename child))
+                                     'bfs-top-symlink-directory-target)
+                                    (t 'bfs-top-symlink-file-target)))))
       (s-concat line (propertize filename 'face 'bfs-top-child-entry)))))
 
 (defun bfs-top-line-ellipsed (child)
