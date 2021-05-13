@@ -765,7 +765,7 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
     (when (window-parameter (selected-window) 'window-side)
       (other-window 1))
     (delete-other-windows))
-   (t (bfs-top-update))))
+   (t nil)))
 
 (defun bfs-clean-if-frame-deleted (_frame)
   "Clean `bfs' environment if the frame that was running it has been deleted.
@@ -790,6 +790,7 @@ before entering in the `bfs' environment."
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
     (remove-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
+    (remove-hook 'window-state-change-hook 'bfs-top-update)
     (setq bfs-visited-backward nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
@@ -884,7 +885,8 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
         (add-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
-        (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update))))))
+        (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
+        (add-hook 'window-state-change-hook 'bfs-top-update))))))
 
 (global-set-key (kbd "M-]") 'bfs)
 
