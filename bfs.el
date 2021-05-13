@@ -624,7 +624,10 @@ Used internally.")
 (defun bfs-top-update ()
   "Update `bfs-top-buffer-name' and redisplay it."
   (bfs-top-buffer)
-  (display-buffer bfs-top-buffer-name bfs-top-window-parameters))
+  (let ((frame (selected-frame)))
+    (select-frame bfs-frame)
+    (display-buffer bfs-top-buffer-name bfs-top-window-parameters)
+    (select-frame frame)))
 
 (defun bfs-preview (child &optional first-time)
   "Preview file CHILD on the right window.
