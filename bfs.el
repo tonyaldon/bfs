@@ -238,7 +238,7 @@ environment and visit that file."
        (s-chomp
         (buffer-substring-no-properties (point-min) (point-max)))))))
 
-(defun bfs-top-mode (&optional parent)
+(defun bfs-top-mode ()
   "Mode use in `bfs-top-buffer-name' when `bfs' environment
   is \"activated\" with `bfs' command.
 
@@ -250,13 +250,13 @@ environment and visit that file."
 
   (setq mode-line-format bfs-top-mode-line-format)
   (face-remap-add-relative 'mode-line-inactive
-                            :background bfs-top-mode-line-background)
+                           :background bfs-top-mode-line-background)
   (face-remap-add-relative 'mode-line-inactive
-                            :foreground bfs-top-mode-line-foreground)
+                           :foreground bfs-top-mode-line-foreground)
   (face-remap-add-relative 'mode-line
-                            :background bfs-top-mode-line-background)
+                           :background bfs-top-mode-line-background)
   (face-remap-add-relative 'mode-line
-                            :foreground bfs-top-mode-line-foreground)
+                           :foreground bfs-top-mode-line-foreground)
 
   (setq major-mode 'bfs-top-mode)
   (setq mode-name "bfs-top")
