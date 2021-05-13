@@ -442,6 +442,11 @@ See `bfs-first-readable-file'."
                        child)))))
 
 (defun bfs-preview-buffer-name ()
+(defun bfs-broken-symlink-p (file)
+  "Return t if FILE is a broken symlink.
+Return nil if not."
+  (and (file-symlink-p file) (not (file-exists-p (file-truename file)))))
+
   "Return the buffer-name of the preview window if lived.
 Return nil if preview window isn't lived.
 
