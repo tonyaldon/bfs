@@ -129,7 +129,7 @@ Return nil if there is no matches."
 (defun bfs-next ()
   "Preview next file."
   (interactive)
-  (unless (= (line-number-at-pos) (line-number-at-pos (point-max)))
+  (unless (= (line-number-at-pos) (1- (line-number-at-pos (point-max))))
     (forward-line))
   (bfs-preview (bfs-child)))
 
@@ -519,7 +519,8 @@ See `bfs-ls-group-directory-first'."
 (defun bfs-insert-ls (dir)
   "Insert directory listing for DIR, formatted according to `bfs-ls'.
 Leave point after the inserted text."
-  (insert (mapconcat 'identity (bfs-ls dir) "\n")))
+  (insert (mapconcat 'identity (bfs-ls dir) "\n"))
+  (insert "\n"))
 
 ;;; Create top, parent, child and preview buffers
 
