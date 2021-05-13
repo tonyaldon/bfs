@@ -856,6 +856,8 @@ before entering in the `bfs' environment."
     (bfs-kill-visited-file-buffers)
     (setq window-sides-vertical bfs-window-sides-vertical-before)
     (setq bfs-window-sides-vertical-before nil)
+    (setq find-file-run-dired bfs-find-file-run-dired-before)
+    (setq bfs-find-file-run-dired-before nil)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
     (when (get-buffer bfs-child-buffer-name)
@@ -885,6 +887,8 @@ Used internally.")
 (defvar bfs-window-sides-vertical-before nil
   "Use to store user value of `window-sides-vertical' before
 activating `bfs' environment.")
+
+(defvar bfs-find-file-run-dired-before nil)
 
 (defun bfs (&optional file)
   "Start a `bfs' (Browse File System) environment in the `selected-frame'.
@@ -942,6 +946,8 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (setq bfs-buffer-list-before (buffer-list))
         (setq bfs-window-sides-vertical-before window-sides-vertical)
         (setq window-sides-vertical nil)
+        (setq bfs-find-file-run-dired-before find-file-run-dired)
+        (setq find-file-run-dired t)
         (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
