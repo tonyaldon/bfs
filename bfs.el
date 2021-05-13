@@ -168,12 +168,12 @@ environment and visit that file."
           (t
            (let (child-buffer)
              (condition-case err
-                 (setq child-buffer (find-file-noselect child))
+                 (setq child-buffer (find-file-noselect (file-truename child)))
                (file-error (message "%s" (error-message-string err))))
              (when child-buffer
                (bfs-clean)
                (delete-other-windows)
-               (find-file child)))))))
+               (find-file (file-truename child))))))))
 
 ;;; Scrolling
 
