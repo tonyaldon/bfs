@@ -633,14 +633,15 @@ When FIRST-TIME is non-nil, set the window layout."
         (push (window-buffer preview-window) bfs-visited-file-buffers)))
     preview-window))
 
-(defun bfs-preview-update ()
+(defun bfs-isearch-preview-update ()
   "Update the preview window with the current child entry file.
 
 Intended to be added to `isearch-update-post-hook' and
 `isearch-mode-end-hook'.  This allows to preview the file the
 cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
-  (bfs-preview (bfs-child)))
+  (when (string= (buffer-name) bfs-child-buffer-name)
+    (bfs-preview (bfs-child))))
 
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
@@ -764,8 +765,8 @@ before entering in the `bfs' environment."
     (setq bfs-is-active nil)
     (remove-function after-delete-frame-functions 'bfs-clean-if-frame-deleted)
     (remove-hook 'window-configuration-change-hook 'bfs-check-environment)
-    (remove-hook 'isearch-mode-end-hook 'bfs-preview-update)
-    (remove-hook 'isearch-update-post-hook 'bfs-preview-update)
+    (remove-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
+    (remove-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
     (setq bfs-visited-backward nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
@@ -859,8 +860,8 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
         (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
-        (add-hook 'isearch-mode-end-hook 'bfs-preview-update)
-        (add-hook 'isearch-update-post-hook 'bfs-preview-update))))))
+        (add-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
+        (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update))))))
 
 (global-set-key (kbd "M-]") 'bfs)
 
