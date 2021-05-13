@@ -478,10 +478,14 @@ See `bfs-windows'."
               (preview-buffer-name (bfs-preview-current-buffer-name))
               (preview-file-path
                (with-current-buffer preview-buffer-name
-                 (if (equal major-mode 'dired-mode)
-                     default-directory
-                   (buffer-file-name)))))
-    (f-equal-p preview-file-path child)))
+                 (cond ((equal major-mode 'dired-mode)
+                        default-directory)
+                       ((string= preview-buffer-name bfs-preview-buffer-name)
+                        bfs-preview-buffer-file-name)
+                       (t (buffer-file-name))))))
+    (if (bfs-broken-symlink-p child)
+        (string= preview-file-path (file-truename child) )
+      (f-equal-p preview-file-path child))))
 
 ;;; List directories
 
@@ -663,19 +667,35 @@ Used internally.")
 When FIRST-TIME is non-nil, set the window layout."
   (bfs-top-update)
   (let (preview-window)
-    (cond ((bfs-preview-matches-child-p) nil) ; do nothing
+    (cond (first-time
+           (setq preview-window
+                 (display-buffer (find-file-noselect (file-truename child))
+                                 bfs-preview-window-parameters))) ; do nothing
+          ((and (bfs-preview-matches-child-p)
+                (not (bfs-broken-symlink-p child)))
+           nil) ; do nothing
           ((member (file-name-extension child)
                    bfs-ignored-extensions)
-           nil) ; do nothing
-          ((> (file-attribute-size (file-attributes child))
-              bfs-max-size)
-           nil) ; do nothing
-          (first-time
-           (setq preview-window
-                 (display-buffer (find-file-noselect child)
-                                 bfs-preview-window-parameters)))
-          (t (setq preview-window
-                   (display-buffer (find-file-noselect child) t))))
+           (bfs-preview-buffer child "File ignored due to its extension")
+           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+          ((and (file-exists-p child)
+                (> (file-attribute-size (file-attributes (file-truename child)))
+                   bfs-max-size))
+           (bfs-preview-buffer child "File ignored due to its size")
+           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+          ((bfs-broken-symlink-p child)
+           (bfs-preview-buffer child "Symlink is broken")
+           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+          (t
+           (condition-case err
+               (setq preview-window
+                     (display-buffer
+                      (find-file-noselect (or (file-symlink-p child) child)) t))
+             (file-error
+              (bfs-preview-buffer child (error-message-string err))
+              (display-buffer (get-buffer bfs-preview-buffer-name) t)
+              (with-current-buffer bfs-child-buffer-name
+                (bfs-line-highlight))))))
     (when preview-window
       (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
         (kill-buffer (pop bfs-visited-file-buffers)))
