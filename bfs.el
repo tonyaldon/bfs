@@ -715,7 +715,17 @@ Intended to be called only once in `bfs'."
 ;;; Leave bfs
 
 (defvar bfs-do-not-check-after
-  '(bfs bfs-backward bfs-forward bfs-find-file)
+  '(bfs
+    bfs-previous bfs-next bfs-backward bfs-forward
+    bfs-scroll-down-half-window
+    bfs-scroll-up-half-window
+    bfs-beginning-of-buffer
+    bfs-end-of-buffer
+    isearch-forward
+    isearch-repeat-forward
+    isearch-repeat-backward
+    isearch-backward
+    bfs-find-file)
   "List of commands after which we don't want to check the validity of
 `bfs' environment.")
 
