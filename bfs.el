@@ -112,7 +112,7 @@ Return nil if there is no matches."
 
 (defun bfs-update-visited-backward (child)
   "Add CHILD to `bfs-visited-backward' conditionally."
-  (unless (or (and (f-directory-p child)
+  (unless (or (and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
               (not (bfs-file-readable-p child)))
     (setq bfs-visited-backward
@@ -149,10 +149,10 @@ If child entry (is not a directory) and is a readable file, leave `bfs'
 environment and visit that file."
   (interactive)
   (let* ((child (bfs-child)))
-    (cond ((and (f-directory-p child)
+    (cond ((and (file-directory-p child)
                 (not (file-accessible-directory-p child)))
            (message "Permission denied: %s" child))
-          ((f-directory-p child)
+          ((file-directory-p child)
            (let ((visited (bfs-get-visited-backward child))
                  (readable (bfs-first-readable-file child)))
              (cond (visited (bfs-update visited))
@@ -223,7 +223,7 @@ environment and visit that file."
   "Find a file with your completion framework and update `bfs' environment."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
-  (if (and (f-directory-p file)
+  (if (and (file-directory-p file)
            (not (f-root-p file))
            (bfs-first-readable-file file))
       (bfs-update (bfs-first-readable-file file))
@@ -349,7 +349,7 @@ environment and visit that file."
         face)
     (cond ((or (equal (buffer-name (current-buffer))
                       bfs-parent-buffer-name)
-               (f-directory-p (bfs-child)))
+               (file-directory-p (bfs-child)))
            (setq face `(:background ,foreground-dir
                         :foreground ,background-dir
                         :weight ultra-bold
@@ -448,7 +448,7 @@ See `bfs-first-readable-file'."
   "Return t if CHILD file can be previewed in `bfs' environment."
   (not (cond ((not (f-exists-p child))
               (message "File doesn't exist: %s" child))
-             ((and (f-directory-p child)
+             ((and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
               (message "Permission denied: %s" child))
              ((not (bfs-file-readable-p child))
@@ -934,7 +934,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
    (t
     (let (child)
       (if file
-          (if (and (f-directory-p file)
+          (if (and (file-directory-p file)
                    (not (f-root-p file))
                    (bfs-first-readable-file file))
               (setq child (bfs-first-readable-file file))
