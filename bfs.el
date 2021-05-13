@@ -448,12 +448,12 @@ See `bfs-first-readable-file'."
                                  "or have discarded extensions: %s")
                        child)))))
 
-(defun bfs-preview-buffer-name ()
 (defun bfs-broken-symlink-p (file)
   "Return t if FILE is a broken symlink.
 Return nil if not."
   (and (file-symlink-p file) (not (file-exists-p (file-truename file)))))
 
+(defun bfs-preview-current-buffer-name ()
   "Return the buffer-name of the preview window if lived.
 Return nil if preview window isn't lived.
 
@@ -464,7 +464,7 @@ See `bfs-windows'."
 (defun bfs-preview-matches-child-p ()
   "Return t if buffer of preview window matches the child entry."
   (when-let* ((child (bfs-child))
-              (preview-buffer-name (bfs-preview-buffer-name))
+              (preview-buffer-name (bfs-preview-current-buffer-name))
               (preview-file-path
                (with-current-buffer preview-buffer-name
                  (if (equal major-mode 'dired-mode)
