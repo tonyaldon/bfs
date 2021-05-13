@@ -303,10 +303,10 @@ See `bfs-top-buffer'."
     (define-key map (kbd "f") 'bfs-forward)
     (define-key map (kbd "RET") 'bfs-forward)
 
-    (define-key map (kbd "d") 'bfs-scroll-preview-down-half-window)
-    (define-key map (kbd "s") 'bfs-scroll-preview-up-half-window)
-    (define-key map (kbd "u") 'bfs-scroll-down-half-window)
-    (define-key map (kbd "i") 'bfs-scroll-up-half-window)
+    (define-key map (kbd "<backspace>") 'bfs-scroll-preview-down-half-window)
+    (define-key map (kbd "<SPC>") 'bfs-scroll-preview-up-half-window)
+    (define-key map (kbd "C-<backspace>") 'bfs-scroll-down-half-window)
+    (define-key map (kbd "C-<SPC>") 'bfs-scroll-up-half-window)
     (define-key map (kbd "<") 'bfs-beginning-of-buffer)
     (define-key map (kbd ">") 'bfs-end-of-buffer)
 
