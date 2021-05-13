@@ -483,8 +483,10 @@ Face properties are added to files and directories here."
     (nconc (nreverse dirs) (nreverse files))))
 
 (defun bfs-ls (dir)
-  "Return the list of files in DIR appending a \"/\" to the directories.
-The list is sorted alphabetically with the directories first."
+  "Return the list of files in DIR.
+The list is sorted alphabetically with the directories first.
+
+See `bfs-ls-group-directory-first'."
   (let ((file-alist
          (sort (directory-files-and-attributes dir)
                (lambda (x y) (ls-lisp-string-lessp (car x) (car y))))))
