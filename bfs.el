@@ -499,13 +499,13 @@ Leave point after the inserted text."
 
 ;;; Create top, parent and child buffers
 
-(defvar bfs-top-buffer-name "*bfs-top*"
+(defvar bfs-top-buffer-name " *bfs-top* "
   "Top buffer name.")
 
-(defvar bfs-parent-buffer-name "*bfs-parent*"
+(defvar bfs-parent-buffer-name " *bfs-parent* "
   "Parent buffer name.")
 
-(defvar bfs-child-buffer-name "*bfs-child*"
+(defvar bfs-child-buffer-name " *bfs-child* "
   "Child buffer name.")
 
 (defun bfs-top-line-truncate (len s)
