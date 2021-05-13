@@ -520,7 +520,7 @@ See `bfs-ls-group-directory-first'."
 Leave point after the inserted text."
   (insert (s-join "\n" (bfs-ls dir))))
 
-;;; Create top, parent and child buffers
+;;; Create top, parent, child and preview buffers
 
 (defvar bfs-top-buffer-name " *bfs-top* "
   "Top buffer name.")
@@ -530,6 +530,13 @@ Leave point after the inserted text."
 
 (defvar bfs-child-buffer-name " *bfs-child* "
   "Child buffer name.")
+
+(defvar bfs-preview-buffer-name " *bfs-preview* "
+  "Preview buffer name when we are not visiting a file,
+but just showing information related to the reason
+we are not previewing `bfs-child' file.")
+
+(defvar-local bfs-preview-buffer-file-name nil)
 
 (defun bfs-top-line-truncate (len s)
   "If S is longer than LEN, cut it down and add \"...\" to the beginning."
@@ -596,6 +603,17 @@ of the directory PARENT and the cursor at CHILD entry."
     (bfs-insert-ls parent)
     (bfs-goto-entry child-entry)
     (bfs-mode parent)))
+
+(defun bfs-preview-buffer (child reason)
+  "Produce `bfs-preview-buffer-name' buffer.
+Insert REASON string into the buffer that expresses why we
+don't visit CHILD as any regular file."
+  (with-current-buffer (get-buffer-create bfs-preview-buffer-name)
+    (read-only-mode -1)
+    (erase-buffer)
+    (insert reason)
+    (bfs-preview-mode)
+    (setq-local bfs-preview-buffer-file-name (file-truename child))))
 
 ;;; Display
 
@@ -823,7 +841,9 @@ before entering in the `bfs' environment."
     (when (get-buffer bfs-child-buffer-name)
       (kill-buffer bfs-child-buffer-name))
     (when (get-buffer bfs-top-buffer-name)
-      (kill-buffer bfs-top-buffer-name))))
+      (kill-buffer bfs-top-buffer-name))
+    (when (get-buffer bfs-preview-buffer-name)
+      (kill-buffer bfs-preview-buffer-name))))
 
 (defun bfs-quit ()
   "Leave `bfs-mode' and restore previous window configuration."
