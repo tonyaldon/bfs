@@ -2,7 +2,6 @@
 
 ;;; Packages
 
-(require 's)
 (require 'f)
 (require 'dash)
 (require 'ls-lisp)
@@ -163,8 +162,8 @@ environment and visit that file."
                     (dired child))
                    (readable (bfs-update readable))
                    (t (message
-                       (s-concat "Files are not readable, or are too large, "
-                                 "or have discarded extensions, in directory: %s")
+                       (concat "Files are not readable, or are too large, "
+                               "or have discarded extensions, in directory: %s")
                        child)))))
           (t
            (let (child-buffer)
@@ -237,13 +236,11 @@ environment and visit that file."
   (let ((file (or child (bfs-child))))
     (with-temp-buffer
       (insert-directory file "-lh")
+      (delete-char -1) ; delete the last newline character
       (goto-char (point-min))
       (dired-goto-next-file)
       (delete-region (point) (point-at-eol))
-      (s-concat
-       " "
-       (s-chomp
-        (buffer-substring-no-properties (point-min) (point-max)))))))
+      (concat " " (buffer-substring-no-properties (point-min) (point-max))))))
 
 (defun bfs-top-mode ()
   "Mode use in `bfs-top-buffer-name' when `bfs' environment
@@ -410,7 +407,7 @@ If `bfs-child-buffer-name' isn't lived return nil."
 (defun bfs-goto-entry (entry)
   "Move the cursor to the line ENTRY."
   (goto-char (point-min))
-  (search-forward-regexp (s-concat "^" entry) nil t)
+  (search-forward-regexp (concat "^" entry) nil t)
   (beginning-of-line))
 
 (defun bfs-file-readable-p (file)
@@ -455,8 +452,8 @@ See `bfs-first-readable-file'."
                    (not (file-accessible-directory-p child)))
               (message "Permission denied: %s" child))
              ((not (bfs-file-readable-p child))
-              (message (s-concat "File is not readable, or is too large, "
-                                 "or have discarded extensions: %s")
+              (message (concat "File is not readable, or is too large, "
+                               "or have discarded extensions: %s")
                        child)))))
 
 (defun bfs-broken-symlink-p (file)
@@ -522,7 +519,7 @@ See `bfs-ls-group-directory-first'."
 (defun bfs-insert-ls (dir)
   "Insert directory listing for DIR, formatted according to `bfs-ls'.
 Leave point after the inserted text."
-  (insert (s-join "\n" (bfs-ls dir))))
+  (insert (mapconcat 'identity (bfs-ls dir) "\n")))
 
 ;;; Create top, parent, child and preview buffers
 
@@ -546,19 +543,19 @@ we are not previewing `bfs-child' file.")
   "If S is longer than LEN, cut it down and add \"...\" to the beginning."
   (let ((len-s (length s)))
     (if (> len-s len)
-        (s-concat (propertize "..." 'face 'bfs-directory)
-                  (substring s (- len-s (- len 3)) len-s))
+        (concat (propertize "..." 'face 'bfs-directory)
+                (substring s (- len-s (- len 3)) len-s))
       s)))
 
 (defun bfs-top-line-default (child)
   "Return the string of CHILD path formated to be used in `bfs-top-buffer-name'."
   (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
-                     (s-concat (f-parent child) "/")))
+                     (concat (f-parent child) "/")))
          (filename (f-filename child))
          (line (propertize parent 'face 'bfs-top-parent-directory)))
     (if-let ((target (file-symlink-p child)))
         (-reduce
-         #'s-concat
+         #'concat
          `(,line
            ,(propertize filename
                         'face (if (bfs-broken-symlink-p child)
@@ -571,7 +568,7 @@ we are not previewing `bfs-child' file.")
                                     ((file-directory-p (file-truename child))
                                      'bfs-top-symlink-directory-target)
                                     (t 'bfs-top-symlink-file-target)))))
-      (s-concat line (propertize filename 'face 'bfs-top-child-entry)))))
+      (concat line (propertize filename 'face 'bfs-top-child-entry)))))
 
 (defun bfs-top-line-ellipsed (child)
   "Return `bfs-top-line-default' truncated with ellipses at the beginning
@@ -943,8 +940,8 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
             (setq child file))
         (if-let ((child-default (bfs-child-default (current-buffer))))
             (setq child child-default)
-          (message (s-concat "Files are not readable, or are too large, "
-                             "or have discarded extensions, in directory: %s")
+          (message (concat "Files are not readable, or are too large, "
+                           "or have discarded extensions, in directory: %s")
                    default-directory)))
       (when (and child (bfs-child-is-valid-p child))
         (setq bfs-is-active t)
