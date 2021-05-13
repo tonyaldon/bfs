@@ -269,6 +269,17 @@ environment and visit that file."
   (setq mode-name "bfs-top")
   (setq buffer-read-only t))
 
+;;; bfs-preview-mode
+
+(defun bfs-preview-mode ()
+  "Mode use in `bfs-preview-buffer-name'."
+  (interactive)
+  (kill-all-local-variables)
+  (setq major-mode 'bfs-preview-mode)
+  (setq mode-name "bfs-preview")
+  (visual-line-mode t)
+  (setq buffer-read-only t))
+
 ;;; bfs-mode
 
 ;;;; Keymaps
