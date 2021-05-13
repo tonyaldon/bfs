@@ -366,9 +366,9 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
         ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
          (use-local-map bfs-parent-mode-map))
         (t t))
-  (setq major-mode 'bfs-mode
-        mode-name "bfs"
-        buffer-read-only t))
+  (setq major-mode 'bfs-mode)
+  (setq mode-name "bfs")
+  (setq buffer-read-only t))
 
 ;;; Utilities
 
