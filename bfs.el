@@ -446,7 +446,7 @@ See `bfs-first-readable-file'."
 
 (defun bfs-child-is-valid-p (child)
   "Return t if CHILD file can be previewed in `bfs' environment."
-  (not (cond ((not (f-exists-p child))
+  (not (cond ((not (file-exists-p child))
               (message "File doesn't exist: %s" child))
              ((and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
