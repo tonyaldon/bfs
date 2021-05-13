@@ -52,6 +52,13 @@
   "Face of symlink target when it is a file in `bfs-top-buffer-name'."
   :group 'bfs)
 
+(defface bfs-top-broken-symlink
+  (if (>= emacs-major-version 28)
+      '((t (:inherit dired-broken-symlink)))
+    '((t (:inherit error))))
+  "Face of broken links used in `bfs-top-buffer-name'."
+  :group 'bfs)
+
 (defvar bfs-top-mode-line-background
   (face-background 'mode-line-inactive nil t)
   "Background color of `bfs-top-buffer-name' mode line.
