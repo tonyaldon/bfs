@@ -918,6 +918,7 @@ Used internally.")
 
 (defvar bfs-find-file-run-dired-before nil)
 
+;;;###autoload
 (defun bfs (&optional file)
   "Start a `bfs' (Browse File System) environment in the `selected-frame'.
 
