@@ -451,7 +451,8 @@ Return an empty string if DIR directory is empty."
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
-Return nil if we can't determine a \"suitable\" file name for BUFFER."
+Return `default-directory' if we can't determine a \"suitable\"
+file name for BUFFER."
   (with-current-buffer buffer
     (cond ((buffer-file-name))
           ((and (equal major-mode 'dired-mode)
