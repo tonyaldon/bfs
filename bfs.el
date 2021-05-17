@@ -171,30 +171,28 @@ In other words, go up by one node in the file system tree."
     (bfs-update default-directory)))
 
 (defun bfs-forward ()
-  "Update `bfs' environment making child entry the parent entry.
+  "Update `bfs' environment making `bfs-child-entry' the parent entry.
 In other words, go down by one node in the file system tree.
 
-If child entry (is not a directory) and is a readable file, leave `bfs'
-environment and visit that file."
+If `bfs-child' is a readable file, leave `bfs' and visit that file.
+If `bfs-child' is an empty directory, leave `bfs' and visit that file."
   (interactive)
   (let* ((child (bfs-child)))
     (cond ((and (file-directory-p child)
                 (not (file-accessible-directory-p child)))
            (message "Permission denied: %s" child))
           ((file-directory-p child)
-           (let ((visited (bfs-get-visited-backward child))
-                 (readable (bfs-first-readable-file child)))
+           (let ((visited (bfs-get-visited-backward child)))
              (cond (visited (bfs-update visited))
-                   ((and readable (f-equal-p readable child))
-                    (bfs-clean)
-                    (delete-other-windows)
-                    (dired child))
-                   (readable (bfs-update readable))
-                   (t (message
-                       (concat "Files are not readable, or are too large, "
-                               "or have discarded extensions, in directory: %s")
-                       child)))))
-          (t
+                   ((not (f-empty-p child))
+                    (bfs-update
+                     (f-join child (car (bfs-ls child)))))
+                   (t (bfs-clean)
+                      (delete-other-windows)
+                      (dired child)))))
+          ((bfs-broken-symlink-p child)
+           (message "Symlink is broken: %s" child))
+          ((f-file-p child)
            (let (child-buffer)
              (condition-case err
                  (setq child-buffer (find-file-noselect (file-truename child)))
@@ -253,9 +251,8 @@ environment and visit that file."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
   (if (and (file-directory-p file)
-           (not (f-root-p file))
-           (bfs-first-readable-file file))
-      (bfs-update (bfs-first-readable-file file))
+           (bfs-first-valid-child file))
+      (bfs-update (bfs-first-valid-child file))
     (bfs-update file)))
 
 ;;; bfs-top-mode
@@ -449,7 +446,7 @@ If `bfs-child-buffer-name' isn't lived return nil."
          nil)
         (t t)))
 
-(defun bfs-first-readable-file (dir)
+(defun bfs-first-valid-child (dir)
   "Return the first file of DIR directory satisfaying `bfs-valid-child-p'.
 
 Return nil if DIR isn't accesible.  See `file-accessible-directory-p'.
@@ -461,17 +458,16 @@ Return an empty string if DIR directory is empty."
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
-Return nil if we can't determine a \"suitable\" file name for BUFFER.
-
-See `bfs-first-readable-file'."
+Return nil if we can't determine a \"suitable\" file name for BUFFER."
   (with-current-buffer buffer
     (cond ((buffer-file-name))
-          ((and (dired-file-name-at-point)
-                (not (member (f-filename (dired-file-name-at-point)) '("." "..")))
+          ((and (equal major-mode 'dired-mode)
+                (dired-file-name-at-point)
                 (not (member (f-filename (dired-file-name-at-point)) '("." ".."))))
            (dired-file-name-at-point))
-          ((bfs-first-readable-file default-directory)))))
-
+          ((bfs-ls default-directory)
+           (f-join default-directory (car (bfs-ls default-directory))))
+          (t default-directory))))
 
 (defun bfs-broken-symlink-p (file)
   "Return t if FILE is a broken symlink.
@@ -739,15 +735,10 @@ cursor has moved to using \"isearch\" commands in
 
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
-    (let ((inhibit-message t) parent child-entry)
-      (if (f-root-p child)
-          (progn (setq parent "/")
-                 (setq child-entry
-                       (and (bfs-first-readable-file "/")
-                            (f-filename (bfs-first-readable-file "/")))))
-        (setq parent (f-dirname child))
-        (setq child-entry (f-filename child)))
   (when (bfs-valid-child-p child)
+    (let ((inhibit-message t)
+          (parent (f-dirname child))
+          (child-entry (f-filename child)))
       (bfs-top-update)
       (bfs-parent-buffer parent)
       (bfs-child-buffer parent child-entry)
@@ -948,16 +939,15 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
    (t
     (let (child)
       (if file
-          (if (and (file-directory-p file)
-                   (not (f-root-p file))
-                   (bfs-first-readable-file file))
-              (setq child (bfs-first-readable-file file))
-            (setq child file))
-        (if-let ((child-default (bfs-child-default (current-buffer))))
-            (setq child child-default)
-          (message (concat "Files are not readable, or are too large, "
-                           "or have discarded extensions, in directory: %s")
-                   default-directory)))
+          (progn
+            (if (and (file-directory-p file)
+                     (bfs-first-valid-child file))
+                (setq child (bfs-first-valid-child file))
+              (setq child file))
+            ;; to prevent `bfs-check-environment' to check `bfs'
+            ;; environment when we are building it for the first time
+            (setq this-command 'bfs))
+        (setq child (bfs-child-default (current-buffer))))
       (when (and child (bfs-valid-child-p child))
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
