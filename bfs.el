@@ -678,20 +678,16 @@ Used internally.")
   "Preview file CHILD on the right window.
 When FIRST-TIME is non-nil, set the window layout."
   (bfs-top-update)
-  (let (preview-window)
-    (cond (first-time
-           (setq preview-window
-                 (display-buffer (find-file-noselect (file-truename child))
-                                 bfs-preview-window-parameters))) ; do nothing
-          ((and (bfs-preview-matches-child-p)
+  (let (preview-window preview-file-buffer no-preview-update)
+    (cond ((and (not first-time)
+                (bfs-preview-matches-child-p)
                 (not (bfs-broken-symlink-p child)))
-           nil) ; do nothing
+           (setq no-preview-update t))
           ((member (file-name-extension child)
                    bfs-ignored-extensions)
            (bfs-preview-buffer child
                                (format "File ignored due to its extension: %s"
-                                       (file-name-extension child)))
-           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+                                       (file-name-extension child))))
           ((and (file-exists-p child)
                 (> (file-attribute-size (file-attributes (file-truename child)))
                    bfs-max-size))
@@ -699,28 +695,39 @@ When FIRST-TIME is non-nil, set the window layout."
                                (format "File ignored due to its size: %s"
                                        (file-size-human-readable
                                         (file-attribute-size
-                                         (file-attributes (file-truename child))))))
-           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+                                         (file-attributes (file-truename child)))))))
           ((bfs-broken-symlink-p child)
-           (bfs-preview-buffer child "Symlink is broken")
-           (display-buffer (get-buffer bfs-preview-buffer-name) t))
+           (bfs-preview-buffer child "Symlink is broken"))
           (t
            (condition-case err
-               (setq preview-window
-                     (display-buffer
-                      (find-file-noselect (or (file-symlink-p child) child)) t))
+               (setq preview-file-buffer
+                     (find-file-noselect (or (file-symlink-p child) child)))
              (file-error
               (bfs-preview-buffer child (error-message-string err))
-              (display-buffer (get-buffer bfs-preview-buffer-name) t)
+              (if first-time
+                  (display-buffer (get-buffer bfs-preview-buffer-name)
+                                  bfs-preview-window-parameters)
+                (display-buffer (get-buffer bfs-preview-buffer-name) t))
               (with-current-buffer bfs-child-buffer-name
                 (bfs-line-highlight))))))
-    (when preview-window
-      (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
-        (kill-buffer (pop bfs-visited-file-buffers)))
-      (unless (-contains-p
-               (-union bfs-buffer-list-before bfs-visited-file-buffers)
-               (window-buffer preview-window))
-        (push (window-buffer preview-window) bfs-visited-file-buffers)))
+    (unless no-preview-update
+      (if preview-file-buffer
+          (progn
+            (setq preview-window
+                  (if first-time
+                      (display-buffer preview-file-buffer
+                                      bfs-preview-window-parameters)
+                    (display-buffer preview-file-buffer t)))
+            (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
+              (kill-buffer (pop bfs-visited-file-buffers)))
+            (unless (-contains-p
+                     (-union bfs-buffer-list-before bfs-visited-file-buffers)
+                     preview-file-buffer)
+              (push preview-file-buffer bfs-visited-file-buffers)))
+        (if first-time
+            (display-buffer (get-buffer bfs-preview-buffer-name)
+                            bfs-preview-window-parameters)
+          (display-buffer (get-buffer bfs-preview-buffer-name) t))))
     preview-window))
 
 (defun bfs-isearch-preview-update ()
