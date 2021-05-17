@@ -602,7 +602,8 @@ path is greater than the top window width."
 
 (defun bfs-parent-buffer (parent)
   "Produce `bfs-parent-buffer-name' buffer.
-The produced buffer contains the listing of the directory PARENT."
+The produced buffer contains the listing of the parent directory of
+PARENT and put the cursor at PARENT dirname."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
