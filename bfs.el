@@ -143,7 +143,7 @@ Return nil if there is no matches."
   "Add CHILD to `bfs-visited-backward' conditionally."
   (unless (or (and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
-              (not (bfs-file-readable-p child)))
+              (not (bfs-valid-child-p child)))
     (setq bfs-visited-backward
           (cons child
                 (--remove (f-equal-p (f-dirname child) (f-dirname it))
@@ -439,25 +439,25 @@ If `bfs-child-buffer-name' isn't lived return nil."
   (search-forward-regexp (concat "^" entry) nil t)
   (beginning-of-line))
 
-(defun bfs-file-readable-p (file)
-  "Return t if FILE is a readable file satisfaying:
-- its extension doesn't belong to `bfs-ignored-extensions',
-- and its size is less than `bfs-max-size'.
-
-See `file-readable-p'."
-  (and (file-readable-p file)
-       (not (member (file-name-extension file)
-                    bfs-ignored-extensions))
-       (< (file-attribute-size (file-attributes file))
-          bfs-max-size)))
+(defun bfs-valid-child-p (child)
+  "Return t if CHILD (file path) can be a child in `bfs' environment."
+  (cond ((not (f-exists-p child))
+         (message "File doesn't exist: %s" child)
+         nil)
+        ((f-root-p child)
+         (message "Root can't be a bfs child: %s" child)
+         nil)
+        (t t)))
 
 (defun bfs-first-readable-file (dir)
-  "Return the first file of DIR directory satisfaying `bfs-file-readable-p'.
+  "Return the first file of DIR directory satisfaying `bfs-valid-child-p'.
 
+Return nil if DIR isn't accesible.  See `file-accessible-directory-p'.
 Return nil if none are found.
 Return an empty string if DIR directory is empty."
-  (--first (bfs-file-readable-p it)
-           (--map (f-join dir it) (bfs-ls dir))))
+  (when (file-accessible-directory-p dir)
+    (--first (bfs-valid-child-p it)
+             (--map (f-join dir it) (bfs-ls dir)))))
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
@@ -468,21 +468,10 @@ See `bfs-first-readable-file'."
     (cond ((buffer-file-name))
           ((and (dired-file-name-at-point)
                 (not (member (f-filename (dired-file-name-at-point)) '("." "..")))
-                (bfs-file-readable-p (dired-file-name-at-point)))
+                (not (member (f-filename (dired-file-name-at-point)) '("." ".."))))
            (dired-file-name-at-point))
           ((bfs-first-readable-file default-directory)))))
 
-(defun bfs-child-is-valid-p (child)
-  "Return t if CHILD file can be previewed in `bfs' environment."
-  (not (cond ((not (file-exists-p child))
-              (message "File doesn't exist: %s" child))
-             ((and (file-directory-p child)
-                   (not (file-accessible-directory-p child)))
-              (message "Permission denied: %s" child))
-             ((not (bfs-file-readable-p child))
-              (message (concat "File is not readable, or is too large, "
-                               "or have discarded extensions: %s")
-                       child)))))
 
 (defun bfs-broken-symlink-p (file)
   "Return t if FILE is a broken symlink.
@@ -750,7 +739,6 @@ cursor has moved to using \"isearch\" commands in
 
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
-  (when (bfs-child-is-valid-p child)
     (let ((inhibit-message t) parent child-entry)
       (if (f-root-p child)
           (progn (setq parent "/")
@@ -759,6 +747,7 @@ cursor has moved to using \"isearch\" commands in
                             (f-filename (bfs-first-readable-file "/")))))
         (setq parent (f-dirname child))
         (setq child-entry (f-filename child)))
+  (when (bfs-valid-child-p child)
       (bfs-top-update)
       (bfs-parent-buffer parent)
       (bfs-child-buffer parent child-entry)
@@ -969,7 +958,7 @@ In the child window, the local keymap in use is `bfs-child-mode-map':
           (message (concat "Files are not readable, or are too large, "
                            "or have discarded extensions, in directory: %s")
                    default-directory)))
-      (when (and child (bfs-child-is-valid-p child))
+      (when (and child (bfs-valid-child-p child))
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
         (setq bfs-buffer-list-before (buffer-list))
