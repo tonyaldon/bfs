@@ -125,6 +125,14 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 (defvar bfs-max-size large-file-warning-threshold
   "Don't preview files larger than this size.")
 
+(defvar bfs-ls-function 'bfs-ls
+  "Function of one argument DIR (a file path) that
+return a list of filename (not file path) contained in DIR.
+\".\" or \"..\" must always be omitted.
+This is the function we use to fill `bfs-child-buffer-name' and
+`bfs-child-buffer-name' buffers with filenames.
+See `bfs-ls'.")
+
 ;;; Movements
 
 (defvar bfs-visited-backward nil
@@ -184,9 +192,9 @@ If `bfs-child' is an empty directory, leave `bfs' and visit that file."
           ((file-directory-p child)
            (let ((visited (bfs-get-visited-backward child)))
              (cond (visited (bfs-update visited))
-                   ((not (f-empty-p child))
+                   ((funcall bfs-ls-function child)
                     (bfs-update
-                     (f-join child (car (bfs-ls child)))))
+                     (f-join child (car (funcall bfs-ls-function child)))))
                    (t (bfs-clean)
                       (delete-other-windows)
                       (dired child)))))
@@ -447,7 +455,7 @@ Return nil if none are found.
 Return an empty string if DIR directory is empty."
   (when (file-accessible-directory-p dir)
     (--first (bfs-valid-child-p it)
-             (--map (f-join dir it) (bfs-ls dir)))))
+             (--map (f-join dir it) (funcall bfs-ls-function dir)))))
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
@@ -459,8 +467,8 @@ file name for BUFFER."
                 (dired-file-name-at-point)
                 (not (member (f-filename (dired-file-name-at-point)) '("." ".."))))
            (dired-file-name-at-point))
-          ((bfs-ls default-directory)
-           (f-join default-directory (car (bfs-ls default-directory))))
+          ((funcall bfs-ls-function default-directory)
+           (f-join default-directory (car (funcall bfs-ls-function default-directory))))
           (t default-directory))))
 
 (defun bfs-broken-symlink-p (file)
@@ -527,7 +535,7 @@ See `bfs-ls-group-directory-first'."
 (defun bfs-insert-ls (dir)
   "Insert directory listing for DIR, formatted according to `bfs-ls'.
 Leave point after the inserted text."
-  (insert (mapconcat 'identity (bfs-ls dir) "\n"))
+  (insert (mapconcat 'identity (funcall bfs-ls-function dir) "\n"))
   (insert "\n"))
 
 ;;; Create top, parent, child and preview buffers
