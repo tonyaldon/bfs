@@ -309,13 +309,6 @@ See `bfs-top-buffer'."
 
 (defvar bfs-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") 'bfs-quit)
-    map)
-  "Keymap for `bfs-mode'.")
-
-(defvar bfs-child-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map bfs-mode-map)
 
     (define-key map (kbd "p") 'bfs-previous)
     (define-key map (kbd "n") 'bfs-next)
@@ -341,7 +334,7 @@ See `bfs-top-buffer'."
 
 (defvar bfs-parent-mode-map
   (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map bfs-mode-map)
+    (define-key map (kbd "q") 'bfs-quit)
     map)
   "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
 
@@ -403,7 +396,7 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
   (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
-         (use-local-map bfs-child-mode-map))
+         (use-local-map bfs-mode-map))
         ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
          (use-local-map bfs-parent-mode-map))
         (t t))
@@ -937,9 +930,9 @@ move to.
 Any command that invalidates `bfs' environment will cause to leave
 `bfs' environment.  See `bfs-check-environment'.
 
-In the child window, the local keymap in use is `bfs-child-mode-map':
+In the child window, the local keymap in use is `bfs-mode-map':
 
-\\{bfs-child-mode-map}."
+\\{bfs-mode-map}."
   (interactive)
   (cond
    (bfs-is-active
