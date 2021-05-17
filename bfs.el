@@ -500,12 +500,12 @@ See `bfs-windows'."
 ;;; List directories
 
 (defun bfs-ls-group-directory-first (file-alist)
-  "Sort FILE-ALIST with directories first keeping only the FILEs.
+  "Return a list of FILEs sorting FILE-ALIST with directories first.
+Face properties are added to files and directories here.
 FILE-ALIST's elements are (FILE . FILE-ATTRIBUTES).
 If FILE is one of \".\" or \"..\", we remove it from
 the resulting list.
-
-Face properties are added to files and directories here."
+If FILEs are only \".\" or \"..\", return nil."
   (let (el dirs files)
     (while file-alist
       (if (or (eq (cadr (setq el (car file-alist))) t) ; directory
@@ -522,6 +522,7 @@ Face properties are added to files and directories here."
 (defun bfs-ls (dir)
   "Return the list of files in DIR.
 The list is sorted alphabetically with the directories first.
+Return nil, if DIR is empty.
 
 See `bfs-ls-group-directory-first'."
   (let ((file-alist
