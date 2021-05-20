@@ -682,11 +682,11 @@ Used internally.")
   "Preview file CHILD on the right window.
 When FIRST-TIME is non-nil, set the window layout."
   (bfs-top-update)
-  (let (preview-window preview-file-buffer no-preview-update)
+  (let (preview-window preview-file-buffer (preview-update t))
     (cond ((and (not first-time)
                 (bfs-preview-matches-child-p)
                 (not (bfs-broken-symlink-p child)))
-           (setq no-preview-update t))
+           (setq preview-update nil))
           ((member (file-name-extension child)
                    bfs-ignored-extensions)
            (bfs-preview-buffer child
@@ -714,7 +714,7 @@ When FIRST-TIME is non-nil, set the window layout."
                 (display-buffer (get-buffer bfs-preview-buffer-name) t))
               (with-current-buffer bfs-child-buffer-name
                 (bfs-line-highlight))))))
-    (unless no-preview-update
+    (when preview-update
       (if preview-file-buffer
           (progn
             (setq preview-window
