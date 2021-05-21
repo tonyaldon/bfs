@@ -273,55 +273,7 @@ cursor has moved to using \"isearch\" commands in
       (bfs-update (bfs-first-valid-child file))
     (bfs-update file)))
 
-;;; bfs-top-mode
-
-(defun bfs-top-mode-line (&optional child)
-  "Return the string that describe CHILD file.
-This string is used in the mode line of `bfs-top-buffer-name' buffer.
-If CHILD is nil, default to `bfs-child'."
-  (let ((file (or child (bfs-child))))
-    (with-temp-buffer
-      (insert-directory file "-lh")
-      (delete-char -1) ; delete the last newline character
-      (goto-char (point-min))
-      (dired-goto-next-file)
-      (delete-region (point) (point-at-eol))
-      (concat " " (buffer-substring-no-properties (point-min) (point-max))))))
-
-(defun bfs-top-mode ()
-  "Mode use in `bfs-top-buffer-name' buffer.
-See `bfs-top-buffer'."
-  (interactive)
-  (kill-all-local-variables)
-  (setq-local cursor-type nil)
-  (setq-local global-hl-line-mode nil)
-
-  (setq mode-line-format bfs-top-mode-line-format)
-  (face-remap-add-relative 'mode-line-inactive
-                           :background bfs-top-mode-line-background)
-  (face-remap-add-relative 'mode-line-inactive
-                           :foreground bfs-top-mode-line-foreground)
-  (face-remap-add-relative 'mode-line
-                           :background bfs-top-mode-line-background)
-  (face-remap-add-relative 'mode-line
-                           :foreground bfs-top-mode-line-foreground)
-
-  (setq major-mode 'bfs-top-mode)
-  (setq mode-name "bfs-top")
-  (setq buffer-read-only t))
-
-;;; bfs-preview-mode
-
-(defun bfs-preview-mode ()
-  "Mode use in `bfs-preview-buffer-name'."
-  (interactive)
-  (kill-all-local-variables)
-  (setq major-mode 'bfs-preview-mode)
-  (setq mode-name "bfs-preview")
-  (visual-line-mode t)
-  (setq buffer-read-only t))
-
-;;; bfs-mode
+;;; bfs modes
 
 ;;;; Keymaps
 
@@ -358,7 +310,7 @@ See `bfs-top-buffer'."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") 'bfs-quit)
     map)
-  "Keymap for `bfs-mode' used in `bfs-parent-buffer-name' buffer.")
+  "Keymap for `bfs-parent-mode' used in `bfs-parent-buffer-name' buffer.")
 
 ;;;; Highlight line in child and parent buffers
 
@@ -404,12 +356,62 @@ See `bfs-top-buffer'."
   (overlay-put bfs-line-overlay 'window nil)
   (bfs-line-move-overlay bfs-line-overlay))
 
-;;;; bfs-mode
+;;;; bfs-top-mode
 
-(defun bfs-mode (&optional parent)
-  "Mode use in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
-In `bfs-mode', `default-directory' is set to PARENT.
-See `bfs-child-buffer' and `bfs-parent-buffer' commands."
+(defun bfs-top-mode-line (&optional child)
+  "Return the string that describe CHILD file.
+This string is used in the mode line of `bfs-top-buffer-name' buffer.
+If CHILD is nil, default to `bfs-child'."
+  (let ((file (or child (bfs-child))))
+    (with-temp-buffer
+      (insert-directory file "-lh")
+      (delete-char -1) ; delete the last newline character
+      (goto-char (point-min))
+      (dired-goto-next-file)
+      (delete-region (point) (point-at-eol))
+      (concat " " (buffer-substring-no-properties (point-min) (point-max))))))
+
+(defun bfs-top-mode ()
+  "Mode use in `bfs-top-buffer-name' buffer.
+See `bfs-top-buffer'."
+  (interactive)
+  (kill-all-local-variables)
+  (setq-local cursor-type nil)
+  (setq-local global-hl-line-mode nil)
+
+  (setq mode-line-format bfs-top-mode-line-format)
+  (face-remap-add-relative 'mode-line-inactive
+                           :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line-inactive
+                           :foreground bfs-top-mode-line-foreground)
+  (face-remap-add-relative 'mode-line
+                           :background bfs-top-mode-line-background)
+  (face-remap-add-relative 'mode-line
+                           :foreground bfs-top-mode-line-foreground)
+
+  (setq major-mode 'bfs-top-mode)
+  (setq mode-name "bfs-top")
+  (setq buffer-read-only t))
+
+;;;; bfs-preview-mode
+
+(defun bfs-preview-mode ()
+  "Mode use in `bfs-preview-buffer-name'."
+  (interactive)
+  (kill-all-local-variables)
+  (setq major-mode 'bfs-preview-mode)
+  (setq mode-name "bfs-preview")
+  (visual-line-mode t)
+  (setq buffer-read-only t))
+
+;;;; bfs-parent-mode
+
+(defun bfs-parent-mode (&optional parent)
+  "Mode used in `bfs-parent-buffer-name' buffer.
+In `bfs-parent-mode', `default-directory' is set to PARENT, and
+must be the parent directory of the file listed in
+`bfs-parent-buffer-name' buffer.
+See `bfs-parent-buffer' command."
   (interactive)
   (kill-all-local-variables)
   (setq default-directory (or parent default-directory))
@@ -417,11 +419,27 @@ See `bfs-child-buffer' and `bfs-parent-buffer' commands."
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (cond ((string= (buffer-name (current-buffer)) bfs-child-buffer-name)
-         (use-local-map bfs-mode-map))
-        ((string= (buffer-name (current-buffer)) bfs-parent-buffer-name)
-         (use-local-map bfs-parent-mode-map))
-        (t t))
+  (use-local-map bfs-parent-mode-map)
+  (setq major-mode 'bfs-parent-mode)
+  (setq mode-name "bfs-parent")
+  (setq buffer-read-only t))
+
+;;;; bfs-mode
+
+(defun bfs-mode (&optional parent)
+  "Mode used in `bfs-child-buffer-name' buffer.
+In `bfs-mode', `default-directory' is set to PARENT, and
+must be the parent directory of the file listed in
+`bfs-child-buffer-name' buffer.
+See `bfs-child-buffer' command."
+  (interactive)
+  (kill-all-local-variables)
+  (setq default-directory (or parent default-directory))
+  (setq-local cursor-type nil)
+  (setq-local global-hl-line-mode nil)
+  (bfs-line-highlight)
+  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
+  (use-local-map bfs-mode-map)
   (setq major-mode 'bfs-mode)
   (setq mode-name "bfs")
   (setq buffer-read-only t))
@@ -623,10 +641,11 @@ PARENT and put the cursor at PARENT dirname."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
-    (cond ((f-root-p parent) (insert "/") (bfs-goto-entry "/"))
+    (cond ((f-root-p parent)
+           (insert "/") (bfs-goto-entry "/") (bfs-parent-mode parent))
           (t (bfs-insert-ls (f-parent parent))
-             (bfs-goto-entry (f-filename parent))))
-    (bfs-mode parent)))
+             (bfs-goto-entry (f-filename parent))
+             (bfs-parent-mode (f-parent parent))))))
 
 (defun bfs-child-buffer (parent child-entry)
   "Produce `bfs-child-buffer-name' buffer.
