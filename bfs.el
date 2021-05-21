@@ -343,7 +343,11 @@ See `bfs-top-buffer'."
 
     (define-key map (kbd "C-f") 'bfs-find-file)
 
-    (define-key map (kbd "D") (lambda () (interactive) (dired default-directory)))
+    (define-key map (kbd "D") (lambda () (interactive)
+                                (let ((dir default-directory))
+                                  (delete-other-windows)
+                                  (bfs-clean)
+                                  (dired dir))))
     (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
 
     (define-key map (kbd "q") 'bfs-quit)
