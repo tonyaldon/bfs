@@ -252,7 +252,17 @@ If `bfs-child' is an empty directory, leave `bfs' and visit that file."
   (if (eobp) (bfs-previous)
     (bfs-preview (bfs-child))))
 
-;;; Find a file
+;;; Find a file, isearch
+
+(defun bfs-isearch-preview-update ()
+  "Update the preview window with the current child entry file.
+
+Intended to be added to `isearch-update-post-hook' and
+`isearch-mode-end-hook'.  This allows to preview the file the
+cursor has moved to using \"isearch\" commands in
+`bfs-child-buffer-name' buffer."
+  (when (string= (buffer-name) bfs-child-buffer-name)
+    (bfs-preview (bfs-child))))
 
 (defun bfs-find-file (file)
   "Find a FILE with your completion framework and update `bfs' environment."
@@ -733,16 +743,6 @@ When FIRST-TIME is non-nil, set the window layout."
                             bfs-preview-window-parameters)
           (display-buffer (get-buffer bfs-preview-buffer-name) t))))
     preview-window))
-
-(defun bfs-isearch-preview-update ()
-  "Update the preview window with the current child entry file.
-
-Intended to be added to `isearch-update-post-hook' and
-`isearch-mode-end-hook'.  This allows to preview the file the
-cursor has moved to using \"isearch\" commands in
-`bfs-child-buffer-name' buffer."
-  (when (string= (buffer-name) bfs-child-buffer-name)
-    (bfs-preview (bfs-child))))
 
 (defun bfs-update (child)
   "Update `bfs' environment according to CHILD file."
