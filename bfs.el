@@ -4,7 +4,7 @@
 
 ;; Author: Tony Aldon <tony.aldon.adm@gmail.com>
 ;; Version: 0.10.0
-;; Package-Requires: ((emacs "27.1") (dash "2.17.0") (f "0.20.0"))
+;; Package-Requires: ((emacs "27.1") (dash "2.17.0") (f "0.20.0") (s "1.12.0"))
 ;; Keywords: files
 ;; Homepage: https://github.com/tonyaldon/bfs
 
@@ -33,6 +33,7 @@
 (require 'dired)
 (require 'f)
 (require 'ls-lisp)
+(require 's)
 
 ;;; User options
 
@@ -568,13 +569,13 @@ See `bfs-ls'.")
 (defun bfs-insert-ls-parent (dir)
   "Insert directory listing for DIR according to `bfs-ls-parent-function'.
 Leave point after the inserted text."
-  (insert (mapconcat 'identity (funcall bfs-ls-parent-function dir) "\n"))
+  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
   (insert "\n"))
 
 (defun bfs-insert-ls-child (dir)
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
-  (insert (mapconcat 'identity (funcall bfs-ls-parent-function dir) "\n"))
+  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
   (insert "\n"))
 ;;; Create top, parent, child and preview buffers
 
