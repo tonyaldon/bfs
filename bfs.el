@@ -445,7 +445,10 @@ If `bfs-child-buffer-name' isn't lived return nil."
       (f-join default-directory (bfs-child-entry)))))
 
 (defun bfs-child-entry ()
-  "Return the current child entry."
+  "Return the current child entry.
+If `point' in `bfs-child-buffer-name' is on an empty line, return
+an empty string \"\".  This can happen when we filter entries and we don't
+kept any."
   (with-current-buffer bfs-child-buffer-name
     (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
 
