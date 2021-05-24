@@ -332,26 +332,17 @@ cursor has moved to using \"isearch\" commands in
   "Activate overlay on the current line."
   (unless bfs-line-overlay
     (setq bfs-line-overlay (bfs-line-make-overlay)))
-  (let ((background-dir (or (face-background 'bfs-directory nil t)
-                            (face-background 'default nil t)))
-        (foreground-dir (or (face-foreground 'bfs-directory nil t)
-                            (face-foreground 'default nil t)))
-        (background-file (or (face-background 'bfs-file nil t)
-                             (face-background 'default nil t)))
-        (foreground-file (or (face-foreground 'bfs-file nil t)
-                             (face-foreground 'default nil t)))
-        face)
-    (cond ((or (equal (buffer-name (current-buffer))
-                      bfs-parent-buffer-name)
-               (file-directory-p (bfs-child)))
-           (setq face `(:background ,foreground-dir
-                        :foreground ,background-dir
-                        :weight ultra-bold
-                        :extend t)))
-          (t (setq face `(:background ,foreground-file
-                          :foreground ,background-file
-                          :weight ultra-bold
-                          :extend t))))
+  (let* ((face-line (get-text-property (point) 'face))
+         (foreground-line
+          (or (and face-line (face-foreground face-line nil t))
+              (face-foreground 'default nil t)))
+         (background-line
+          (or (and face-line (face-background face-line nil t))
+              (face-background 'default nil t)))
+         (face `(:background ,foreground-line
+                 :foreground ,background-line
+                 :weight ultra-bold
+                 :extend t)))
     (overlay-put bfs-line-overlay 'face face))
   (overlay-put bfs-line-overlay 'window nil)
   (bfs-line-move-overlay bfs-line-overlay))
@@ -642,8 +633,9 @@ PARENT and put the cursor at PARENT dirname."
     (read-only-mode -1)
     (erase-buffer)
     (cond ((f-root-p parent)
-           (insert "/") (bfs-goto-entry "/") (bfs-parent-mode parent))
-          (t (bfs-insert-ls (f-parent parent))
+           (insert (propertize "/" 'face 'bfs-directory))
+           (bfs-goto-entry "/") (bfs-parent-mode parent))
+          (t (bfs-insert-ls-parent (f-parent parent))
              (bfs-goto-entry (f-filename parent))
              (bfs-parent-mode (f-parent parent))))))
 
