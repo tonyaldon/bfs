@@ -126,6 +126,15 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 (defvar bfs-max-size large-file-warning-threshold
   "Don't preview files larger than this size.")
 
+(defvar bfs-ls-child-filter-functions nil
+  "List of filter functions that are applied to `bfs-ls-child-function' list.
+
+Each function takes one argument FILENAME (the name, in linux system, part
+after the last \"/\") and returns non-nil if we want FILENAME
+to be kept in the \"ls\" listing of `bfs-child-buffer-name'.
+
+See `bfs-insert-ls-child'.")
+
 ;;; Movements
 
 (defvar bfs-visited-backward nil
@@ -183,14 +192,22 @@ If `bfs-child' is an empty directory, leave `bfs' and visit that file."
                 (not (file-accessible-directory-p child)))
            (message "Permission denied: %s" child))
           ((file-directory-p child)
-           (let ((visited (bfs-get-visited-backward child)))
-             (cond (visited (bfs-update visited))
-                   ((funcall bfs-ls-child-function child)
-                    (bfs-update
-                     (f-join child (car (funcall bfs-ls-child-function child)))))
-                   (t (bfs-clean)
-                      (delete-other-windows)
-                      (dired child)))))
+           (let* ((visited (bfs-get-visited-backward child))
+                  (ls-child-filtered (bfs-ls-child-filtered child))
+                  (visited-belong-child-filtered-p
+                   (and visited
+                        (member visited (--map (f-join child it)
+                                               ls-child-filtered)))))
+             (cond
+              (visited-belong-child-filtered-p
+               (bfs-update visited))
+              (ls-child-filtered
+               (bfs-update (f-join child (car ls-child-filtered))))
+              ((and (null ls-child-filtered)
+                    (funcall bfs-ls-child-function child))
+               (message "Can't go forward, filters are in effect: %s"
+                        bfs-ls-child-filter-functions))
+              (t (message "Can't go forward, directory is empty")))))
           ((bfs-broken-symlink-p child)
            (message "Symlink is broken: %s" child))
           ((f-file-p child)
@@ -474,7 +491,7 @@ Return nil if none are found.
 Return an empty string if DIR directory is empty."
   (when (file-accessible-directory-p dir)
     (--first (bfs-valid-child-p it)
-             (--map (f-join dir it) (funcall bfs-ls-child-function dir)))))
+             (--map (f-join dir it) (bfs-ls-child-filtered dir)))))
 
 (defun bfs-child-default (buffer)
   "Return the file name of BUFFER.
@@ -486,9 +503,9 @@ file name for BUFFER."
                 (dired-file-name-at-point)
                 (not (member (f-filename (dired-file-name-at-point)) '("." ".."))))
            (dired-file-name-at-point))
-          ((funcall bfs-ls-child-function default-directory)
+          ((bfs-ls-child-filtered default-directory)
            (f-join default-directory
-                   (car (funcall bfs-ls-child-function default-directory))))
+                   (car (bfs-ls-child-filtered default-directory))))
           (t default-directory))))
 
 (defun bfs-broken-symlink-p (file)
@@ -572,10 +589,18 @@ Leave point after the inserted text."
   (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
   (insert "\n"))
 
+(defun bfs-ls-child-filtered (dir)
+  "Filter the list returned by `bfs-ls-child-function' applied to DIR.
+We apply `bfs-ls-child-filter-functions' filters."
+  (if-let* ((filters bfs-ls-child-filter-functions)
+            (filter (apply '-andfn filters)))
+      (-filter filter (funcall bfs-ls-child-function dir))
+    (funcall bfs-ls-child-function dir)))
+
 (defun bfs-insert-ls-child (dir)
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
-  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
+  (insert (s-join "\n" (bfs-ls-child-filtered dir)))
   (insert "\n"))
 ;;; Create top, parent, child and preview buffers
 
@@ -638,7 +663,14 @@ path is greater than the top window width."
   (with-current-buffer (get-buffer-create bfs-top-buffer-name)
     (read-only-mode -1)
     (erase-buffer)
-    (insert (funcall bfs-top-line-function (or child (bfs-child))))
+    ;; TODO: can be better handle, by changing the value return by `bfs-child'
+    ;;       when the cursor on child buffer is on an empty line
+    (if (and (window-live-p (plist-get bfs-windows :child))
+             (string= (buffer-name (window-buffer (plist-get bfs-windows :child)))
+                      bfs-child-buffer-name)
+             (s-blank-p (bfs-child-entry)))
+        (insert "No child entry to be previewed")
+      (insert (funcall bfs-top-line-function (or child (bfs-child)))))
     (bfs-top-mode)))
 
 (defun bfs-parent-buffer (parent)
@@ -728,6 +760,13 @@ When FIRST-TIME is non-nil, set the window layout."
                 (bfs-preview-matches-child-p)
                 (not (bfs-broken-symlink-p child)))
            (setq preview-update nil))
+          ;; TODO: it works when child buffer is totaly filtered (empty),
+          ;;       but know it not only depend on `child' argument,
+          ;;       but on the result of `bfs-child-entry'
+          ;;       we can do better
+          ((and (buffer-live-p (get-buffer bfs-child-buffer-name))
+                (s-blank-p (bfs-child-entry)))
+           (bfs-preview-buffer child "No child entry to be previewed"))
           ((member (file-name-extension child)
                    bfs-ignored-extensions)
            (bfs-preview-buffer child
@@ -868,8 +907,14 @@ See `bfs-valid-layout-p' and `bfs-preview-matches-child-p'."
   (cond
    ((or (window-minibuffer-p)
         (not (eq (selected-frame) bfs-frame))
-        (memq last-command bfs-do-not-check-after))
-    nil) ;; do nothing
+        (memq last-command bfs-do-not-check-after)
+        ;; TODO: can be handle better, we might handle this case
+        ;;       in `bfs-preview-matches-child-p' function
+        (and (window-live-p (plist-get bfs-windows :child))
+             (string= (buffer-name (window-buffer (plist-get bfs-windows :child)))
+                      bfs-child-buffer-name)
+             (s-blank-p (bfs-child-entry))))
+    nil)
    ((or (not (bfs-valid-layout-p))
         (not (bfs-preview-matches-child-p)))
     (bfs-clean)
