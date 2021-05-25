@@ -126,6 +126,20 @@ When nil, opened buffers are killed when leaving `bfs' environment.")
 (defvar bfs-max-size large-file-warning-threshold
   "Don't preview files larger than this size.")
 
+(defvar bfs-ls-parent-function 'bfs-ls
+  "Function of one argument DIR (a file path) that
+return a list of filename (not file path) contained in DIR.
+\".\" or \"..\" must always be omitted.
+This is the function we use to fill `bfs-parent-buffer-name'.
+See `bfs-ls'.")
+
+(defvar bfs-ls-child-function 'bfs-ls
+  "Function of one argument DIR (a file path) that
+return a list of filename (not file path) contained in DIR.
+\".\" or \"..\" must always be omitted.
+This is the function we use to fill `bfs-child-buffer-name'.
+See `bfs-ls'.")
+
 (defvar bfs-ls-child-filter-functions nil
   "List of filter functions that are applied to `bfs-ls-child-function' list.
 
@@ -571,26 +585,6 @@ See `bfs-ls-group-directory-first'."
                (lambda (x y) (ls-lisp-string-lessp (car x) (car y))))))
     (bfs-ls-group-directory-first file-alist)))
 
-(defvar bfs-ls-parent-function 'bfs-ls
-  "Function of one argument DIR (a file path) that
-return a list of filename (not file path) contained in DIR.
-\".\" or \"..\" must always be omitted.
-This is the function we use to fill `bfs-parent-buffer-name'.
-See `bfs-ls'.")
-
-(defvar bfs-ls-child-function 'bfs-ls
-  "Function of one argument DIR (a file path) that
-return a list of filename (not file path) contained in DIR.
-\".\" or \"..\" must always be omitted.
-This is the function we use to fill `bfs-child-buffer-name'.
-See `bfs-ls'.")
-
-(defun bfs-insert-ls-parent (dir)
-  "Insert directory listing for DIR according to `bfs-ls-parent-function'.
-Leave point after the inserted text."
-  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
-  (insert "\n"))
-
 (defun bfs-ls-child-filtered (dir)
   "Filter the list returned by `bfs-ls-child-function' applied to DIR.
 We apply `bfs-ls-child-filter-functions' filters."
@@ -598,6 +592,12 @@ We apply `bfs-ls-child-filter-functions' filters."
             (filter (apply '-andfn filters)))
       (-filter filter (funcall bfs-ls-child-function dir))
     (funcall bfs-ls-child-function dir)))
+
+(defun bfs-insert-ls-parent (dir)
+  "Insert directory listing for DIR according to `bfs-ls-parent-function'.
+Leave point after the inserted text."
+  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
+  (insert "\n"))
 
 (defun bfs-insert-ls-child (dir)
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
