@@ -312,6 +312,8 @@ cursor has moved to using \"isearch\" commands in
                                   (dired dir))))
     (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
 
+    (define-key map (kbd ".") 'bfs-hide-dotfiles)
+
     (define-key map (kbd "q") 'bfs-quit)
     map)
   "Keymap for `bfs-mode' used in `bfs-child-buffer-name' buffer.")
@@ -602,6 +604,24 @@ We apply `bfs-ls-child-filter-functions' filters."
 Leave point after the inserted text."
   (insert (s-join "\n" (bfs-ls-child-filtered dir)))
   (insert "\n"))
+
+;;; Filtering
+
+(defun bfs-hide-dotfiles-filter (filename)
+  "Return non-nil if FILENAME doesn't start with a \".\"."
+  (not (string-match-p "^\\." filename)))
+
+(defun bfs-hide-dotfiles ()
+  "Toggle visibility of dotfiles in `bfs-child-buffer-name'."
+  (interactive)
+  (if (member 'bfs-hide-dotfiles-filter bfs-ls-child-filter-functions)
+      (setq bfs-ls-child-filter-functions
+            (--remove (equal it 'bfs-hide-dotfiles-filter)
+                      bfs-ls-child-filter-functions))
+    (push 'bfs-hide-dotfiles-filter bfs-ls-child-filter-functions))
+  (bfs-child-buffer default-directory (bfs-child-entry))
+  (bfs-preview (bfs-child)))
+
 ;;; Create top, parent, child and preview buffers
 
 (defvar bfs-top-buffer-name " *bfs-top* "
