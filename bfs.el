@@ -195,7 +195,7 @@ In other words, go up by one node in the file system tree."
   (bfs-update default-directory))
 
 (defun bfs-forward ()
-  "Update `bfs' environment making `bfs-child-entry' the parent entry.
+  "Update `bfs' environment making `bfs-child' the parent.
 In other words, go down by one node in the file system tree.
 
 If `bfs-child' is a readable file, leave `bfs' and visit that file.
