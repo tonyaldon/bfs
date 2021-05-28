@@ -424,15 +424,15 @@ See `bfs-top-buffer'."
 
 ;;;; bfs-parent-mode
 
-(defun bfs-parent-mode (&optional parent)
+(defun bfs-parent-mode (&optional dir)
   "Mode used in `bfs-parent-buffer-name' buffer.
-In `bfs-parent-mode', `default-directory' is set to PARENT, and
+In `bfs-parent-mode', `default-directory' is set to DIR, and
 must be the parent directory of the file listed in
 `bfs-parent-buffer-name' buffer.
 See `bfs-parent-buffer' command."
   (interactive)
   (kill-all-local-variables)
-  (setq default-directory (or parent default-directory))
+  (setq default-directory (or dir default-directory))
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
