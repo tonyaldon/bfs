@@ -389,14 +389,11 @@ If CHILD is nil, default to `bfs-child'."
         (concat " " (buffer-substring-no-properties (point-min) (point-max))))
     " No child entry to be previewed"))
 
-(defun bfs-top-mode ()
+(define-derived-mode bfs-top-mode fundamental-mode "bfs-top"
   "Mode use in `bfs-top-buffer-name' buffer.
 See `bfs-top-buffer'."
-  (interactive)
-  (kill-all-local-variables)
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
-
   (setq mode-line-format bfs-top-mode-line-format)
   (face-remap-add-relative 'mode-line-inactive
                            :background bfs-top-mode-line-background)
@@ -406,9 +403,6 @@ See `bfs-top-buffer'."
                            :background bfs-top-mode-line-background)
   (face-remap-add-relative 'mode-line
                            :foreground bfs-top-mode-line-foreground)
-
-  (setq major-mode 'bfs-top-mode)
-  (setq mode-name "bfs-top")
   (setq buffer-read-only t))
 
 ;;;; bfs-preview-mode
@@ -675,7 +669,8 @@ path is greater than the top window width."
     (if-let ((child (or child (bfs-child))))
         (insert (funcall bfs-top-line-function child))
       (insert "No child entry to be previewed"))
-    (bfs-top-mode)))
+    (bfs-top-mode))
+  (bury-buffer bfs-top-buffer-name))
 
 (defun bfs-parent-buffer (parent)
   "Produce `bfs-parent-buffer-name' buffer.
