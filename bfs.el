@@ -444,22 +444,16 @@ See `bfs-parent-buffer' command."
 
 ;;;; bfs-mode
 
-(defun bfs-mode (&optional parent)
+(define-derived-mode bfs-mode fundamental-mode "bfs"
   "Mode used in `bfs-child-buffer-name' buffer.
 In `bfs-mode', `default-directory' is set to PARENT, and
 must be the parent directory of the file listed in
 `bfs-child-buffer-name' buffer.
 See `bfs-child-buffer' command."
-  (interactive)
-  (kill-all-local-variables)
-  (setq default-directory (or parent default-directory))
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (use-local-map bfs-mode-map)
-  (setq major-mode 'bfs-mode)
-  (setq mode-name "bfs")
   (setq buffer-read-only t))
 
 ;;; Utilities
@@ -716,7 +710,9 @@ and put the cursor at CHILD-ENTRY."
     (erase-buffer)
     (bfs-insert-ls-child parent)
     (bfs-goto-entry child-entry)
-    (bfs-mode parent)))
+    (setq-local default-directory parent)
+    (bfs-mode))
+  (bury-buffer bfs-child-buffer-name))
 
 (defun bfs-preview-buffer (child reason)
   "Produce `bfs-preview-buffer-name' buffer.
