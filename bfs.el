@@ -413,12 +413,8 @@ See `bfs-top-buffer'."
 
 ;;;; bfs-preview-mode
 
-(defun bfs-preview-mode ()
+(define-derived-mode bfs-preview-mode fundamental-mode "bfs-preview"
   "Mode use in `bfs-preview-buffer-name'."
-  (interactive)
-  (kill-all-local-variables)
-  (setq major-mode 'bfs-preview-mode)
-  (setq mode-name "bfs-preview")
   (visual-line-mode t)
   (setq buffer-read-only t))
 
@@ -723,7 +719,8 @@ don't visit CHILD as any regular file."
     (bfs-preview-mode)
     (if child
         (setq-local bfs-preview-buffer-file-name (file-truename child))
-      (setq-local bfs-preview-buffer-file-name 'no-child-entry))))
+      (setq-local bfs-preview-buffer-file-name 'no-child-entry)))
+  (bury-buffer bfs-preview-buffer-name))
 
 ;;; Display
 
