@@ -424,22 +424,16 @@ See `bfs-top-buffer'."
 
 ;;;; bfs-parent-mode
 
-(defun bfs-parent-mode (&optional dir)
+(define-derived-mode bfs-parent-mode fundamental-mode "bfs-parent"
   "Mode used in `bfs-parent-buffer-name' buffer.
 In `bfs-parent-mode', `default-directory' is set to DIR, and
 must be the parent directory of the file listed in
 `bfs-parent-buffer-name' buffer.
 See `bfs-parent-buffer' command."
-  (interactive)
-  (kill-all-local-variables)
-  (setq default-directory (or dir default-directory))
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (use-local-map bfs-parent-mode-map)
-  (setq major-mode 'bfs-parent-mode)
-  (setq mode-name "bfs-parent")
   (setq buffer-read-only t))
 
 ;;;; bfs-mode
@@ -696,10 +690,14 @@ PARENT and put the cursor at PARENT dirname."
     (erase-buffer)
     (cond ((f-root-p parent)
            (insert (propertize "/" 'face 'bfs-directory))
-           (bfs-goto-entry "/") (bfs-parent-mode parent))
+           (bfs-goto-entry "/")
+           (setq-local default-directory parent)
+           (bfs-parent-mode))
           (t (bfs-insert-ls-parent (f-parent parent))
              (bfs-goto-entry (f-filename parent))
-             (bfs-parent-mode (f-parent parent))))))
+             (setq-local default-directory (f-parent parent))
+             (bfs-parent-mode))))
+  (bury-buffer bfs-parent-buffer-name))
 
 (defun bfs-child-buffer (parent child-entry)
   "Produce `bfs-child-buffer-name' buffer.
