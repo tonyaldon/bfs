@@ -629,16 +629,16 @@ Leave point after the inserted text."
 
 ;;; Create top, parent, child and preview buffers
 
-(defvar bfs-top-buffer-name " *bfs-top* "
+(defvar bfs-top-buffer-name "*bfs-top*"
   "Top buffer name.")
 
-(defvar bfs-parent-buffer-name " *bfs-parent* "
+(defvar bfs-parent-buffer-name "*bfs-parent*"
   "Parent buffer name.")
 
-(defvar bfs-child-buffer-name " *bfs-child* "
+(defvar bfs-child-buffer-name "*bfs-child*"
   "Child buffer name.")
 
-(defvar bfs-preview-buffer-name " *bfs-preview* "
+(defvar bfs-preview-buffer-name "*bfs-preview*"
   "Preview buffer name when we are not visiting a file.
 This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
