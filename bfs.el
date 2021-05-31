@@ -299,6 +299,24 @@ cursor has moved to using \"isearch\" commands in
 
 ;;; bfs modes
 
+;;;; Font Lock mode
+
+(defvar bfs-top-font-lock-keywords nil
+  "Additional expressions to highlight in `bfs-top-mode',
+using `font-lock-mode'.")
+
+(defvar bfs-preview-font-lock-keywords nil
+  "Additional expressions to highlight in `bfs-preview-mode',
+using `font-lock-mode'.")
+
+(defvar bfs-parent-font-lock-keywords nil
+  "Additional expressions to highlight in `bfs-parent-mode',
+using `font-lock-mode'.")
+
+(defvar bfs-font-lock-keywords nil
+  "Additional expressions to highlight in `bfs-mode',
+using `font-lock-mode'.")
+
 ;;;; Keymaps
 
 (defvar bfs-mode-map
@@ -403,14 +421,16 @@ See `bfs-top-buffer'."
                            :background bfs-top-mode-line-background)
   (face-remap-add-relative 'mode-line
                            :foreground bfs-top-mode-line-foreground)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (setq-local font-lock-defaults '(bfs-top-font-lock-keywords t)))
 
 ;;;; bfs-preview-mode
 
 (define-derived-mode bfs-preview-mode fundamental-mode "bfs-preview"
   "Mode use in `bfs-preview-buffer-name'."
   (visual-line-mode t)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (setq-local font-lock-defaults '(bfs-preview-font-lock-keywords t)))
 
 ;;;; bfs-parent-mode
 
@@ -424,7 +444,8 @@ See `bfs-parent-buffer' command."
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (setq-local font-lock-defaults '(bfs-parent-font-lock-keywords t)))
 
 ;;;; bfs-mode
 
@@ -438,7 +459,8 @@ See `bfs-child-buffer' command."
   (setq-local global-hl-line-mode nil)
   (bfs-line-highlight)
   (add-hook 'post-command-hook #'bfs-line-highlight nil t)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
 
 ;;; Utilities
 
