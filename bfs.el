@@ -572,9 +572,9 @@ If FILEs are only \".\" or \"..\", return nil."
               (and (stringp (cadr el))
                    (file-directory-p (cadr el)))) ; symlink to a directory
           (unless (member (car el) '("." ".."))
-            (setq dirs (cons (propertize (car el) 'face 'bfs-directory)
+            (setq dirs (cons (propertize (car el) 'font-lock-face 'bfs-directory)
                              dirs)))
-        (setq files (cons (propertize (car el) 'face 'bfs-file)
+        (setq files (cons (propertize (car el) 'font-lock-face 'bfs-file)
                           files)))
       (setq file-alist (cdr file-alist)))
     (nconc (nreverse dirs) (nreverse files))))
@@ -658,23 +658,23 @@ we are not previewing `bfs-child' file.")
   (let* ((parent (or (and (f-root-p (f-parent child)) (f-parent child))
                      (concat (f-parent child) "/")))
          (filename (f-filename child))
-         (line (propertize parent 'face 'bfs-top-parent-directory)))
+         (line (propertize parent 'font-lock-face 'bfs-top-parent-directory)))
     (if-let ((target (file-symlink-p child)))
         (-reduce
          #'concat
          `(,line
            ,(propertize filename
-                        'face (if (bfs-broken-symlink-p child)
-                                  'bfs-top-broken-symlink
-                                'bfs-top-symlink-name))
-           ,(propertize " -> " 'face 'bfs-top-symlink-arrow)
+                        'font-lock-face (if (bfs-broken-symlink-p child)
+                                            'bfs-top-broken-symlink
+                                          'bfs-top-symlink-name))
+           ,(propertize " -> " 'font-lock-face 'bfs-top-symlink-arrow)
            ,(propertize target
-                        'face (cond ((bfs-broken-symlink-p child)
-                                     'bfs-top-broken-symlink)
-                                    ((file-directory-p (file-truename child))
-                                     'bfs-top-symlink-directory-target)
-                                    (t 'bfs-top-symlink-file-target)))))
-      (concat line (propertize filename 'face 'bfs-top-child-entry)))))
+                        'font-lock-face (cond ((bfs-broken-symlink-p child)
+                                               'bfs-top-broken-symlink)
+                                              ((file-directory-p (file-truename child))
+                                               'bfs-top-symlink-directory-target)
+                                              (t 'bfs-top-symlink-file-target)))))
+      (concat line (propertize filename 'font-lock-face 'bfs-top-child-entry)))))
 
 (defun bfs-top-line-ellipsed (child)
   "Return `bfs-top-line-default' truncated with ellipses at the beginning.
