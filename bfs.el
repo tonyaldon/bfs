@@ -44,18 +44,13 @@
   "Face used for subdirectories."
   :group 'bfs)
 
-(defface bfs-file
-  '((t (:inherit default)))
-  "Face used for files."
-  :group 'bfs)
-
 (defface bfs-top-parent-directory
   '((t (:inherit dired-header)))
   "Face used for parent directory path in `bfs-top-buffer-name' buffer."
   :group 'bfs)
 
 (defface bfs-top-child-entry
-  '((t (:inherit bfs-file :weight ultra-bold)))
+  '((t (:inherit default :weight ultra-bold)))
   "Face used for child entry in `bfs-top-buffer-name' buffer."
   :group 'bfs)
 
@@ -75,7 +70,7 @@
   :group 'bfs)
 
 (defface bfs-top-symlink-file-target
-  '((t (:inherit bfs-file)))
+  '((t (:inherit default)))
   "Face of symlink target when it is a file in `bfs-top-buffer-name'."
   :group 'bfs)
 
