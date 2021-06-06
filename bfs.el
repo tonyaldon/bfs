@@ -561,7 +561,6 @@ See `bfs-windows'."
 
 (defun bfs-ls-group-directory-first (file-alist)
   "Return a list of FILEs sorting FILE-ALIST with directories first.
-Face properties are added to files and directories here.
 FILE-ALIST's elements are (FILE . FILE-ATTRIBUTES).
 If FILE is one of \".\" or \"..\", we remove it from
 the resulting list.
@@ -572,10 +571,8 @@ If FILEs are only \".\" or \"..\", return nil."
               (and (stringp (cadr el))
                    (file-directory-p (cadr el)))) ; symlink to a directory
           (unless (member (car el) '("." ".."))
-            (setq dirs (cons (propertize (car el) 'font-lock-face 'bfs-directory)
-                             dirs)))
-        (setq files (cons (propertize (car el) 'font-lock-face 'bfs-file)
-                          files)))
+            (setq dirs (cons (car el) dirs)))
+        (setq files (cons (car el) files)))
       (setq file-alist (cdr file-alist)))
     (nconc (nreverse dirs) (nreverse files))))
 
