@@ -304,13 +304,43 @@ using `font-lock-mode'.")
   "Additional expressions to highlight in `bfs-preview-mode',
 using `font-lock-mode'.")
 
-(defvar bfs-parent-font-lock-keywords nil
+(defvar bfs-parent-font-lock-keywords
+  '((bfs-font-lock-match-dir-entry+info 0 'bfs-directory))
   "Additional expressions to highlight in `bfs-parent-mode',
 using `font-lock-mode'.")
 
-(defvar bfs-font-lock-keywords nil
+(defvar bfs-font-lock-keywords
+  '((bfs-font-lock-match-dir-entry+info 0 'bfs-directory))
   "Additional expressions to highlight in `bfs-mode',
 using `font-lock-mode'.")
+
+(defun bfs-font-lock-match-dir-entry (_bound)
+  "Matcher that matches an entry that is a directory.
+BOUND is the limit of the search.  (In general, BOUND has the
+value `point-max'.  See `font-lock.el' file).
+This function set the match data.
+Return nil if no directory entry found."
+  (when-let ((match (text-property-search-forward 'bfs-entry))
+             (file (get-text-property (point-at-bol) 'bfs-file)))
+    (when (file-directory-p file)
+      (let ((match-beg (prop-match-beginning match))
+            (match-end (prop-match-end match)))
+        (set-match-data `(,match-beg ,match-end))
+        match-end))))
+
+(defun bfs-font-lock-match-dir-entry+info (_bound)
+  "Matcher that matches an entry that is a directory.
+BOUND is the limit of the search.  (In general, BOUND has the
+value `point-max'.  See `font-lock.el' file).
+This function set the match data.
+Return nil if no directory entry found."
+  (when-let ((match (text-property-search-forward 'bfs-entry))
+             (file (get-text-property (point-at-bol) 'bfs-file)))
+    (when (file-directory-p file)
+      (let ((match-beg (prop-match-beginning match))
+            (match-end (point-at-eol)))
+        (set-match-data `(,match-beg ,match-end))
+        match-end))))
 
 ;;;; Keymaps
 
