@@ -354,36 +354,48 @@ using `font-lock-mode'.")
 ;;;; Highlight line in child and parent buffers
 
 (defvar-local bfs-line-overlay nil
-  "Overlay used by `bfs-mode' mode to highlight the current line.")
-
-(defun bfs-line-make-overlay ()
-  "Make the overlay used in `bfs-mode'."
-  (let ((ol (make-overlay (point) (point))))
-    (overlay-put ol 'priority -50)
-    ol))
+  "Overlay used to highlight the current line in `bfs-mode'.
+Also used in `bfs-parent-mode'.")
 
 (defun bfs-line-move-overlay (overlay)
   "Move `bfs-line-overlay' to the line including the point by OVERLAY."
   (move-overlay
    overlay (line-beginning-position) (line-beginning-position 2)))
 
-(defun bfs-line-highlight ()
+(defun bfs-line-highlight-child ()
   "Activate overlay on the current line."
   (unless bfs-line-overlay
-    (setq bfs-line-overlay (bfs-line-make-overlay)))
-  (let* ((face-line (get-text-property (point) 'face))
+    (setq bfs-line-overlay (make-overlay (point) (point))))
+  (let* ((entry-point
+          (or (and (get-text-property (point-at-bol) 'bfs-entry) (point-at-bol))
+              (next-single-property-change (point-at-bol) 'bfs-entry nil (point-at-eol))))
+         (face-entry (and entry-point
+                          (if (listp (get-text-property entry-point 'face))
+                              (car (get-text-property entry-point 'face))
+                            (get-text-property entry-point 'face))))
          (foreground-line
-          (or (and face-line (face-foreground face-line nil t))
+          (or (and face-entry (face-foreground face-entry nil t))
               (face-foreground 'default nil t)))
          (background-line
-          (or (and face-line (face-background face-line nil t))
+          (or (and face-entry (face-background face-entry nil t))
               (face-background 'default nil t)))
          (face `(:background ,foreground-line
                  :foreground ,background-line
                  :weight ultra-bold
                  :extend t)))
     (overlay-put bfs-line-overlay 'face face))
-  (overlay-put bfs-line-overlay 'window nil)
+  (bfs-line-move-overlay bfs-line-overlay))
+
+(defun bfs-line-highlight-parent ()
+  "Activate overlay on the current line in `bfs-parent-buffer-name'."
+  (unless bfs-line-overlay
+    (setq bfs-line-overlay (make-overlay (point) (point))))
+  (let ((face `(:background ,(face-foreground 'bfs-directory nil t)
+                :foreground ,(or (face-background 'bfs-directory nil t)
+                                 (face-background 'default nil t))
+                :weight ultra-bold
+                :extend t)))
+    (overlay-put bfs-line-overlay 'face face))
   (bfs-line-move-overlay bfs-line-overlay))
 
 ;;;; bfs-top-mode
@@ -437,8 +449,8 @@ must be the parent directory of the file listed in
 See `bfs-parent-buffer' command."
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
-  (bfs-line-highlight)
-  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
+  (bfs-line-highlight-parent)
+  (add-hook 'post-command-hook #'bfs-line-highlight-parent nil t)
   (setq buffer-read-only t)
   (setq-local font-lock-defaults '(bfs-parent-font-lock-keywords t)))
 
@@ -452,8 +464,7 @@ must be the parent directory of the file listed in
 See `bfs-child-buffer' command."
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
-  (bfs-line-highlight)
-  (add-hook 'post-command-hook #'bfs-line-highlight nil t)
+  (add-hook 'post-command-hook #'bfs-line-highlight-child nil t)
   (setq buffer-read-only t)
   (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
 
@@ -463,28 +474,14 @@ See `bfs-child-buffer' command."
   "Return file path corresponding to the current child entry.
 If `bfs-child-buffer-name' isn't lived return nil."
   (when (buffer-live-p (get-buffer bfs-child-buffer-name))
-    (if (s-blank-p (bfs-child-entry))
-        nil
-      (with-current-buffer bfs-child-buffer-name
-        (f-join default-directory (bfs-child-entry))))))
-
-(defun bfs-child-entry ()
-  "Return the current child entry.
-If `point' in `bfs-child-buffer-name' is on an empty line, return
-an empty string \"\".  This can happen when we filter entries and we don't
-kept any."
-  (with-current-buffer bfs-child-buffer-name
-    (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
-
-(defun bfs-parent-entry ()
-  "Return the current parent entry."
-  (with-current-buffer bfs-child-buffer-name
-    (f-filename default-directory)))
+    (with-current-buffer bfs-child-buffer-name
+      (get-text-property (point) 'bfs-file))))
 
 (defun bfs-goto-entry (entry)
-  "Move the cursor to the line ENTRY."
+  "Move the cursor to the line ENTRY.
+If there is no line with ENTRY or ENTRY is nil, go to the first line."
   (goto-char (point-min))
-  (search-forward-regexp (concat "^" entry) nil t)
+  (text-property-search-forward 'bfs-entry entry t)
   (beginning-of-line))
 
 (defun bfs-valid-child-p (child)
@@ -590,17 +587,147 @@ We apply `bfs-ls-child-filter-functions' filters."
       (-filter filter (funcall bfs-ls-child-function dir))
     (funcall bfs-ls-child-function dir)))
 
-(defun bfs-insert-ls-parent (dir)
-  "Insert directory listing for DIR according to `bfs-ls-parent-function'.
-Leave point after the inserted text."
-  (insert (s-join "\n" (funcall bfs-ls-parent-function dir)))
-  (insert "\n"))
+;;; Format entries
 
-(defun bfs-insert-ls-child (dir)
-  "Insert directory listing for DIR according to `bfs-ls-child-function'.
-Leave point after the inserted text."
-  (insert (s-join "\n" (bfs-ls-child-filtered dir)))
-  (insert "\n"))
+(defvar bfs-format-parent-entry-function
+  'bfs-format-entry-parent
+  "Function that formats the lines to be displayed in
+`bfs-parent-buffer-name'.
+
+See `bfs-format-child-entry-function' to know how
+`bfs-format-parent-entry-function' must be defined.  Not, that as
+we don't implement a mark system in `bfs-parent-buffer-name' buffer,
+in `bfs-format-parent-entry-function' function, you don't have
+to implement this functionality.  Nevertheless, they both
+have the same signature.
+
+`bfs' provides 4 format functions for `bfs-parent-buffer-name':
+- `bfs-format-entry-parent',
+- `bfs-format-entry+size-parent',
+- `bfs-format-icon+entry-parent',
+- `bfs-format-icon+entry+size-parent'.")
+
+(defvar bfs-format-child-entry-function
+  'bfs-format-entry+size
+  "Function that formats the lines to be displayed in
+`bfs-child-buffer-name'.
+
+The function is of the form:
+  (entry dir &optional max-length mark) -> string
+1. The returned string must have the text property 'bfs-file set
+   to the concatenation of DIR and ENTRY,
+2. The part of the returned string that correspond to ENTRY must
+   have the text property 'bfs-entry set to ENTRY,
+3. If MARK is t, the returned string must have the text property
+   'bfs-marked set to t,
+4. If you add some info to the right of ENTRY in the returned string,
+   you might want to add spaces between in order to verticaly
+   align the information in the buffer.  To do this, you can
+   use MAX-LENGTH argument,that correspond to the longest string
+   resulting of the concatenation of ENTRY and the info corresponding
+   to the entry determined for all entries (filename) in DIR.
+   See `bfs-max-length-entry+info'.
+
+`bfs' provides 4 format functions for `bfs-parent-child-name':
+- `bfs-format-entry',
+- `bfs-format-entry+size',
+- `bfs-format-icon+entry',
+- `bfs-format-icon+entry+size'.")
+
+(defun bfs-space-between (len s1 s2)
+  "Concatenate S1 and S2 with spaces in between.
+Add as many spaces as necessary to make the length of the
+resulting string equal to LEN.
+If LEN is too small, add only one space."
+  (let ((space-nb (max 1 (- len (length (concat s1 s2))))))
+    (concat s1 (make-string space-nb ?\ ) s2)))
+
+(defun bfs-size-or-number-of-files (file)
+  "Return the size of FILE file in human readable format.
+If FILE is an accessible directory, return the number of files it contains.
+Return the empty string in any other cases."
+  (cond ((file-regular-p file)
+         (file-size-human-readable
+          (file-attribute-size (file-attributes file)) nil " "))
+        ((file-accessible-directory-p file)
+         (number-to-string
+          (length (--remove (member it '("." "..")) (directory-files file)))))
+        (t "")))
+
+(defun bfs-max-length-entry+size (dir in-buffer &optional is-root)
+  "Return the longest length of the concatenation of an entry and its size.
+The size is determine by the function `bfs-size-or-number-of-files'.
+The entries are obtain by listing DIR directory with:
+- `bfs-ls-child-filtered' if IN-BUFFER is 'child,
+- `bfs-ls-parent-function' if IN-BUFFER is 'parent.
+Return nil if there no file to list in DIR.
+When IS-ROOT t, we don't list DIR, and the calculation is done only on
+the entry DIR.  This case happens when we are at the top of the file
+system and `bfs-parent-buffer-name' buffer has only the entry root and
+`bfs-child-buffer-name' list the files of root."
+  (let ((filenames
+         (cond ((equal in-buffer 'child) (bfs-ls-child-filtered dir))
+               ((equal in-buffer 'parent) (funcall bfs-ls-parent-function dir)))))
+    (if is-root
+        (+ (length dir) (length (bfs-size-or-number-of-files dir)))
+      (when filenames
+        (-max (--map (+ (length it)
+                        (length
+                         (bfs-size-or-number-of-files (f-join dir it))))
+                     filenames))))))
+
+(defun bfs-format-entry (entry dir &optional _max-length mark)
+  "Return the string ENTRY with some added text properties.
+
+Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
+ENTRY is a filename belonging to DIR directory.
+MAX-LENGTH argument isn't used.
+If MARK is t, it means the ENTRY is marked.
+
+See `bfs-format-child-entry-function'."
+  (let* ((file (f-join dir entry))
+         (bfs-entry
+          (propertize
+           (if mark (propertize entry 'font-lock-face 'bfs-mark) entry)
+           'bfs-entry entry))
+         (left-pad
+          (if mark (propertize "* " 'font-lock-face 'bfs-mark) "  ")))
+    (propertize (concat left-pad bfs-entry)
+                'bfs-file file
+                'bfs-marked mark)))
+
+(defun bfs-format-entry+size (entry dir &optional max-length mark)
+  "Return the string ENTRY with the file size of ENTRY on the right.
+
+Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
+ENTRY is a filename belonging to DIR directory.
+MAX-LENGTH correspond to the value of `bfs-max-length-entry+info'.
+If MARK is t, it means the ENTRY is marked.
+
+See `bfs-format-child-entry-function' and `bfs-size-or-number-of-files'."
+  (let* ((left-pad (if mark (propertize "* " 'font-lock-face 'bfs-mark) "  "))
+         (file (f-join dir entry))
+         (bfs-entry (propertize entry 'bfs-entry entry))
+         (size (bfs-size-or-number-of-files file))
+         (info (propertize size 'bfs-info t))
+         (space-between
+          (bfs-space-between (1+ (or max-length 0)) bfs-entry info))
+         (entry+info (if mark
+                         (propertize space-between 'font-lock-face 'bfs-mark)
+                       space-between)))
+    (propertize (concat left-pad entry+info)
+                'bfs-file file
+                'bfs-marked mark)))
+
+(defun bfs-format-entry-parent (entry dir &optional max-length mark)
+  "A wrapper on `bfs-format-entry' where the left spaces are trimmed."
+  (s-trim-left (bfs-format-entry entry dir max-length mark)))
+
+(defun bfs-format-entry+size-parent (entry dir &optional max-length mark)
+  "A wrapper on `bfs-format-entry+size' where the left spaces are trimmed."
+  (s-trim-left (bfs-format-entry+size entry dir max-length mark)))
+
+
 
 ;;; Filtering
 
@@ -616,10 +743,23 @@ Leave point after the inserted text."
             (--remove (equal it 'bfs-hide-dotfiles-filter)
                       bfs-ls-child-filter-functions))
     (push 'bfs-hide-dotfiles-filter bfs-ls-child-filter-functions))
-  (bfs-child-buffer default-directory (bfs-child-entry))
+  (bfs-child-buffer default-directory
+                    (or (and (bfs-child) (f-filename (bfs-child))) ""))
   (bfs-preview (bfs-child)))
 
 ;;; Create top, parent, child and preview buffers
+
+(defvar bfs-line-highlight-child-delay 0.025
+  "The faces used by the overlay control by `bfs-line-highlight-child'
+in `bfs-child-buffer-name' buffer depends on the faces of the
+listed entries present in the buffer.  As those faces are controled
+by `font-lock-mode', to determine the appropriate faces to use,
+`bfs-line-highlight-child' must wait for `font-lock-mode' to made its
+job. `bfs-line-highlight-child-delay' variable controls the delay
+before calling `bfs-line-highlight-child'.
+
+This variable can have the same value as the TIME argument
+of the `run-at-time'.")
 
 (defvar bfs-top-buffer-name "*bfs-top*"
   "Top buffer name.")
@@ -635,7 +775,106 @@ Leave point after the inserted text."
 This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
 
-(defvar-local bfs-preview-buffer-file-name nil)
+(defvar bfs-max-length-entry+info-parent-function
+  'bfs-max-length-entry+size
+  "The function used to set the local variable
+`bfs-max-length-entry+info' in `bfs-parent-buffer-name' buffer.
+
+See `bfs-max-length-entry+size' for an example.
+
+Also see `bfs-format-parent-entry-function'.")
+
+
+(defvar bfs-max-length-entry+info-child-function
+  'bfs-max-length-entry+size
+  "The function used to set the local variable
+`bfs-max-length-entry+info' in `bfs-child-buffer-name' buffer.
+
+See `bfs-max-length-entry+size' for an example.
+
+Also see `bfs-format-child-entry-function'.")
+
+(defvar-local bfs-max-length-entry+info
+  nil
+  "Hold the longest length of the concatenation of an entry and its info.
+Entries are filenames (not the pathes), and infos can be file sizes, or
+any information we might want to add on the right of the entry,
+in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
+
+In `bfs-mode', this local variable is set inside `bfs-insert-ls-child'
+function by `bfs-max-length-entry+info-child-function' function.
+In `bfs-parent-mode', this local variable is set inside `bfs-insert-ls-parent'
+function by `bfs-max-length-entry+info-parent-function' function.")
+
+(defun bfs-insert-ls-parent (dir)
+  "Insert directory listing for DIR according to `bfs-ls-parent-function'.
+Leave point after the inserted text.
+This function is used to fill `bfs-parent-buffer-name'."
+  (let* ((filenames (funcall bfs-ls-parent-function dir))
+         (max-length (funcall bfs-max-length-entry+info-parent-function
+                              dir 'parent)))
+    (insert (s-join "\n" (--map (funcall bfs-format-parent-entry-function
+                                         it dir max-length)
+                                filenames))))
+  (insert "\n"))
+
+(defun bfs-insert-ls-child (dir)
+  "Insert directory listing for DIR according to `bfs-ls-child-function'.
+Leave point after the inserted text."
+  (let* ((filenames (bfs-ls-child-filtered dir))
+         (max-length (funcall bfs-max-length-entry+info-child-function
+                              dir 'child)))
+    (insert
+     (s-join "\n" (--map (funcall bfs-format-child-entry-function
+                                  it dir max-length)
+                         filenames))))
+  (insert "\n"))
+
+(defun bfs-parent-buffer (parent)
+  "Produce `bfs-parent-buffer-name' buffer.
+The produced buffer contains the listing of the parent directory of
+PARENT and put the cursor at PARENT dirname."
+  (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
+    (read-only-mode -1)
+    (erase-buffer)
+    (if (f-root-p parent)
+        (let ((max-length (funcall bfs-max-length-entry+info-parent-function
+                                   parent 'parent t)))
+          (insert (funcall bfs-format-parent-entry-function parent parent max-length))
+          (goto-char (point-min))
+          (bfs-parent-mode)
+          (setq bfs-max-length-entry+info max-length)
+          (setq-local default-directory parent))
+      (bfs-insert-ls-parent (f-parent parent))
+      (bfs-goto-entry (f-filename parent))
+      (bfs-parent-mode)
+      (setq-local default-directory (f-parent parent))
+      (setq bfs-max-length-entry+info
+            (funcall bfs-max-length-entry+info-parent-function
+                     (f-parent parent) 'parent))))
+  (bury-buffer bfs-parent-buffer-name))
+
+(defun bfs-child-buffer (parent child-entry)
+  "Produce `bfs-child-buffer-name' buffer.
+The produced buffer contains the listing of the directory PARENT
+and put the cursor at CHILD-ENTRY."
+  (with-current-buffer (get-buffer-create bfs-child-buffer-name)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (bfs-insert-ls-child parent))
+    (bfs-goto-entry child-entry)
+    (bfs-mode)
+    (setq bfs-max-length-entry+info
+          (funcall bfs-max-length-entry+info-child-function
+                   parent 'child))
+    (setq-local default-directory parent))
+  (bury-buffer bfs-child-buffer-name)
+  (run-at-time bfs-line-highlight-child-delay nil
+               (lambda ()
+                 (with-current-buffer (get-buffer-create bfs-child-buffer-name)
+                   (bfs-line-highlight-child)))))
+
+
 
 (defun bfs-top-line-truncate (len s)
   "If S is longer than LEN, cut it down and add \"...\" to the beginning."
@@ -686,36 +925,7 @@ path is greater than the top window width."
     (bfs-top-mode))
   (bury-buffer bfs-top-buffer-name))
 
-(defun bfs-parent-buffer (parent)
-  "Produce `bfs-parent-buffer-name' buffer.
-The produced buffer contains the listing of the parent directory of
-PARENT and put the cursor at PARENT dirname."
-  (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
-    (read-only-mode -1)
-    (erase-buffer)
-    (cond ((f-root-p parent)
-           (insert (propertize "/" 'face 'bfs-directory))
-           (bfs-goto-entry "/")
-           (setq-local default-directory parent)
-           (bfs-parent-mode))
-          (t (bfs-insert-ls-parent (f-parent parent))
-             (bfs-goto-entry (f-filename parent))
-             (setq-local default-directory (f-parent parent))
-             (bfs-parent-mode))))
-  (bury-buffer bfs-parent-buffer-name))
-
-(defun bfs-child-buffer (parent child-entry)
-  "Produce `bfs-child-buffer-name' buffer.
-The produced buffer contains the listing of the directory PARENT
-and put the cursor at CHILD-ENTRY."
-  (with-current-buffer (get-buffer-create bfs-child-buffer-name)
-    (read-only-mode -1)
-    (erase-buffer)
-    (bfs-insert-ls-child parent)
-    (bfs-goto-entry child-entry)
-    (setq-local default-directory parent)
-    (bfs-mode))
-  (bury-buffer bfs-child-buffer-name))
+(defvar-local bfs-preview-buffer-file-name nil)
 
 (defun bfs-preview-buffer (child reason)
   "Produce `bfs-preview-buffer-name' buffer.
@@ -808,7 +1018,7 @@ When FIRST-TIME is non-nil, set the window layout."
                                   bfs-preview-window-parameters)
                 (display-buffer (get-buffer bfs-preview-buffer-name) t))
               (with-current-buffer bfs-child-buffer-name
-                (bfs-line-highlight))))))
+                (bfs-line-highlight-child))))))
     (when preview-update
       (if preview-file-buffer
           (progn
