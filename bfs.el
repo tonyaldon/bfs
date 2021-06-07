@@ -727,6 +727,85 @@ See `bfs-format-child-entry-function' and `bfs-size-or-number-of-files'."
   "A wrapper on `bfs-format-entry+size' where the left spaces are trimmed."
   (s-trim-left (bfs-format-entry+size entry dir max-length mark)))
 
+;;;; All the icons
+
+(declare-function all-the-icons-icon-for-dir "ext:all-the-icons")
+(declare-function all-the-icons-icon-for-file "ext:all-the-icons")
+
+(defvar bfs-icon-v-adjust 0.01
+  "The default vertical adjustment of the icon in `bfs-mode'.
+The variable is meaningful only if you have `all-the-icons' installed
+and at least one of the functions `bfs-format-child-entry-function'
+or `bfs-format-parent-entry-function' is a function that uses
+`all-the-icons'.
+
+See `bfs-format-icon+entry' and `bfs-icon'.")
+
+(defun bfs-icon (file &optional mark)
+  "Return the icon string provide by `all-the-icons' corresponding to FILE.
+If MARK is true, the returned icon string has the face `bfs-mark'."
+  (if (file-directory-p file)
+      (all-the-icons-icon-for-dir
+       file
+       :face (or (and mark 'bfs-mark) 'bfs-directory)
+       :v-adjust bfs-icon-v-adjust)
+    (if mark (all-the-icons-icon-for-file
+              file :face 'bfs-mark :v-adjust bfs-icon-v-adjust)
+      (all-the-icons-icon-for-file file :v-adjust bfs-icon-v-adjust))))
+
+(defun bfs-format-icon+entry (entry dir &optional _max-length mark)
+  "Return the string ENTRY preceded by the icon corresponding to ENTRY.
+
+Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
+ENTRY is a filename belonging to DIR directory.
+MAX-LENGTH argument isn't used.
+If MARK is t, it means the ENTRY is marked.
+
+See `bfs-format-child-entry-function' and `bfs-icon'."
+  (let* ((file (f-join dir entry))
+         (bfs-entry
+          (propertize
+           (if mark (propertize entry 'font-lock-face 'bfs-mark) entry)
+           'bfs-entry entry))
+         (icon (bfs-icon file mark))
+         (left-pad
+          (if mark (propertize "* " 'font-lock-face 'bfs-mark) "  ")))
+    (propertize (concat left-pad icon "\t" bfs-entry)
+                'bfs-file file
+                'bfs-marked mark)))
+
+(defun bfs-format-icon+entry+size (entry dir &optional max-length mark)
+  "Return the string ENTRY preceded by an icon and the file size at the end.
+
+Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
+ENTRY is a filename belonging to DIR directory.
+MAX-LENGTH correspond to the value of `bfs-max-length-entry+info'.
+If MARK is t, it means the ENTRY is marked.
+
+See `bfs-format-child-entry-function', `bfs-icon' and
+`bfs-size-or-number-of-files'."
+  (let* ((left-pad (if mark (propertize "* " 'font-lock-face 'bfs-mark) "  "))
+         (file (f-join dir entry))
+         (bfs-entry (propertize entry 'bfs-entry entry))
+         (icon (bfs-icon file mark))
+         (size (bfs-size-or-number-of-files file))
+         (info (propertize size 'bfs-info t))
+         (space-between
+          (bfs-space-between (1+ (or max-length 0)) bfs-entry info))
+         (entry+info (if mark
+                         (propertize space-between 'font-lock-face 'bfs-mark)
+                       space-between)))
+    (propertize (concat left-pad icon "\t" entry+info)
+                'bfs-file file
+                'bfs-marked mark)))
+
+(defun bfs-format-icon+entry-parent (entry dir &optional max-length mark)
+  "A wrapper on `bfs-format-icon+entry' where the left spaces are trimmed."
+  (s-trim-left (bfs-format-icon+entry entry dir max-length mark)))
+
+(defun bfs-format-icon+entry+size-parent (entry dir &optional max-length mark)
+  "A wrapper on `bfs-format-icon+entry+size' where the left spaces are trimmed."
+  (s-trim-left (bfs-format-icon+entry+size entry dir max-length mark)))
 
 
 ;;; Filtering
