@@ -496,7 +496,14 @@ See `bfs-child-buffer' command."
   (setq-local global-hl-line-mode nil)
   (add-hook 'post-command-hook #'bfs-line-highlight-child nil t)
   (setq buffer-read-only t)
-  (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
+  (setq-local font-lock-defaults '(bfs-font-lock-keywords t))
+
+  ;; `bfs-line-highlight-child' depends on the faces
+  ;; font-lock adds to the text in the buffer.  So,
+  ;; the buffer must be totally fontify before calling
+  ;; `bfs-line-highlight-child'.
+  (font-lock-fontify-buffer)
+  (bfs-line-highlight-child))
 
 ;;; Utilities
 
@@ -858,18 +865,6 @@ See `bfs-format-child-entry-function', `bfs-icon' and
 
 ;;; Create top, parent, child and preview buffers
 
-(defvar bfs-line-highlight-child-delay 0.025
-  "The faces used by the overlay control by `bfs-line-highlight-child'
-in `bfs-child-buffer-name' buffer depends on the faces of the
-listed entries present in the buffer.  As those faces are controled
-by `font-lock-mode', to determine the appropriate faces to use,
-`bfs-line-highlight-child' must wait for `font-lock-mode' to made its
-job. `bfs-line-highlight-child-delay' variable controls the delay
-before calling `bfs-line-highlight-child'.
-
-This variable can have the same value as the TIME argument
-of the `run-at-time'.")
-
 (defvar bfs-top-buffer-name "*bfs-top*"
   "Top buffer name.")
 
@@ -977,13 +972,7 @@ and put the cursor at CHILD-ENTRY."
           (funcall bfs-max-length-entry+info-child-function
                    parent 'child))
     (setq-local default-directory parent))
-  (bury-buffer bfs-child-buffer-name)
-  (run-at-time bfs-line-highlight-child-delay nil
-               (lambda ()
-                 (with-current-buffer (get-buffer-create bfs-child-buffer-name)
-                   (bfs-line-highlight-child)))))
-
-
+  (bury-buffer bfs-child-buffer-name))
 
 (defun bfs-top-line-truncate (len s)
   "If S is longer than LEN, cut it down and add \"...\" to the beginning."
