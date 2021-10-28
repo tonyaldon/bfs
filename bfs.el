@@ -889,7 +889,7 @@ See `bfs-max-length-entry+size' for an example.
 Also see `bfs-format-parent-entry-function'.")
 
 
-(defvar bfs-max-length-entry+info-child-function
+(defvar bfs-max-length-child-function
   'bfs-max-length-entry+size
   "The function used to set the local variable
 `bfs-max-length' in `bfs-child-buffer-name' buffer.
@@ -906,7 +906,7 @@ any information we might want to add on the right of the entry,
 in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
 
 In `bfs-mode', this local variable is set inside `bfs-insert-ls-child'
-function by `bfs-max-length-entry+info-child-function' function.
+function by `bfs-max-length-child-function' function.
 In `bfs-parent-mode', this local variable is set inside `bfs-insert-ls-parent'
 function by `bfs-max-length-parent-function' function.")
 
@@ -926,7 +926,7 @@ This function is used to fill `bfs-parent-buffer-name'."
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
   (let* ((filenames (bfs-ls-child-filtered dir))
-         (max-length (funcall bfs-max-length-entry+info-child-function
+         (max-length (funcall bfs-max-length-child-function
                               dir 'child)))
     (insert
      (s-join "\n" (--map (funcall bfs-format-child-entry-function
@@ -969,7 +969,7 @@ and put the cursor at CHILD-ENTRY."
     (bfs-goto-entry child-entry)
     (bfs-mode)
     (setq bfs-max-length
-          (funcall bfs-max-length-entry+info-child-function
+          (funcall bfs-max-length-child-function
                    parent 'child))
     (setq-local default-directory parent))
   (bury-buffer bfs-child-buffer-name))
