@@ -496,14 +496,7 @@ See `bfs-child-buffer' command."
   (setq-local global-hl-line-mode nil)
   (add-hook 'post-command-hook #'bfs-line-highlight-child nil t)
   (setq buffer-read-only t)
-  (setq-local font-lock-defaults '(bfs-font-lock-keywords t))
-
-  ;; `bfs-line-highlight-child' depends on the faces
-  ;; font-lock adds to the text in the buffer.  So,
-  ;; the buffer must be totally fontify before calling
-  ;; `bfs-line-highlight-child'.
-  (font-lock-fontify-buffer)
-  (bfs-line-highlight-child))
+  (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
 
 ;;; Utilities
 
@@ -925,13 +918,13 @@ This function is used to fill `bfs-parent-buffer-name'."
 (defun bfs-insert-ls-child (dir)
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
-  (let* ((filenames (bfs-ls-child-filtered dir))
-         (max-length (funcall bfs-max-length-child-function
-                              dir 'child)))
+  (let ((filenames (bfs-ls-child-filtered dir)))
+    (setq bfs-max-length (funcall bfs-max-length-child-function dir 'child))
     (insert
-     (s-join "\n" (--map (funcall bfs-format-child-entry-function
-                                  it dir max-length)
-                         filenames))))
+     (s-join "\n"
+             (--map
+              (funcall bfs-format-child-entry-function it dir bfs-max-length)
+              filenames))))
   (insert "\n"))
 
 (defun bfs-parent-buffer (parent)
@@ -963,15 +956,19 @@ PARENT and put the cursor at PARENT dirname."
 The produced buffer contains the listing of the directory PARENT
 and put the cursor at CHILD-ENTRY."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
+    (unless (bound-and-true-p bfs-mode)
+      (bfs-mode))
     (let ((inhibit-read-only t))
       (erase-buffer)
       (bfs-insert-ls-child parent))
+    (setq-local default-directory parent)
     (bfs-goto-entry child-entry)
-    (bfs-mode)
-    (setq bfs-max-length
-          (funcall bfs-max-length-child-function
-                   parent 'child))
-    (setq-local default-directory parent))
+    ;; `bfs-line-highlight-child' depends on the faces
+    ;; font-lock adds to the text in the buffer.  So,
+    ;; the buffer must be totally fontify before calling
+    ;; `bfs-line-highlight-child'.
+    (font-lock-ensure (point-min) (point-max))
+    (bfs-line-highlight-child))
   (bury-buffer bfs-child-buffer-name))
 
 (defun bfs-top-line-truncate (len s)
