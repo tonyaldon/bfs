@@ -663,7 +663,7 @@ The function is of the form:
    use MAX-LENGTH argument,that correspond to the longest string
    resulting of the concatenation of ENTRY and the info corresponding
    to the entry determined for all entries (filename) in DIR.
-   See `bfs-max-length-entry+info'.
+   See `bfs-max-length'.
 
 `bfs' provides 4 format functions for `bfs-parent-child-name':
 - `bfs-format-entry',
@@ -738,7 +738,7 @@ See `bfs-format-child-entry-function'."
 
 Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
 ENTRY is a filename belonging to DIR directory.
-MAX-LENGTH correspond to the value of `bfs-max-length-entry+info'.
+MAX-LENGTH correspond to the value of `bfs-max-length'.
 If MARK is t, it means the ENTRY is marked.
 
 See `bfs-format-child-entry-function' and `bfs-size-or-number-of-files'."
@@ -816,7 +816,7 @@ See `bfs-format-child-entry-function' and `bfs-icon'."
 
 Format ENTRY to be displayed in `bfs-child-buffer-name' buffer.
 ENTRY is a filename belonging to DIR directory.
-MAX-LENGTH correspond to the value of `bfs-max-length-entry+info'.
+MAX-LENGTH correspond to the value of `bfs-max-length'.
 If MARK is t, it means the ENTRY is marked.
 
 See `bfs-format-child-entry-function', `bfs-icon' and
@@ -882,7 +882,7 @@ we are not previewing `bfs-child' file.")
 (defvar bfs-max-length-entry+info-parent-function
   'bfs-max-length-entry+size
   "The function used to set the local variable
-`bfs-max-length-entry+info' in `bfs-parent-buffer-name' buffer.
+`bfs-max-length' in `bfs-parent-buffer-name' buffer.
 
 See `bfs-max-length-entry+size' for an example.
 
@@ -892,13 +892,13 @@ Also see `bfs-format-parent-entry-function'.")
 (defvar bfs-max-length-entry+info-child-function
   'bfs-max-length-entry+size
   "The function used to set the local variable
-`bfs-max-length-entry+info' in `bfs-child-buffer-name' buffer.
+`bfs-max-length' in `bfs-child-buffer-name' buffer.
 
 See `bfs-max-length-entry+size' for an example.
 
 Also see `bfs-format-child-entry-function'.")
 
-(defvar-local bfs-max-length-entry+info
+(defvar-local bfs-max-length
   nil
   "Hold the longest length of the concatenation of an entry and its info.
 Entries are filenames (not the pathes), and infos can be file sizes, or
@@ -947,13 +947,13 @@ PARENT and put the cursor at PARENT dirname."
           (insert (funcall bfs-format-parent-entry-function parent parent max-length))
           (goto-char (point-min))
           (bfs-parent-mode)
-          (setq bfs-max-length-entry+info max-length)
+          (setq bfs-max-length max-length)
           (setq-local default-directory parent))
       (bfs-insert-ls-parent (f-parent parent))
       (bfs-goto-entry (f-filename parent))
       (bfs-parent-mode)
       (setq-local default-directory (f-parent parent))
-      (setq bfs-max-length-entry+info
+      (setq bfs-max-length
             (funcall bfs-max-length-entry+info-parent-function
                      (f-parent parent) 'parent))))
   (bury-buffer bfs-parent-buffer-name))
@@ -968,7 +968,7 @@ and put the cursor at CHILD-ENTRY."
       (bfs-insert-ls-child parent))
     (bfs-goto-entry child-entry)
     (bfs-mode)
-    (setq bfs-max-length-entry+info
+    (setq bfs-max-length
           (funcall bfs-max-length-entry+info-child-function
                    parent 'child))
     (setq-local default-directory parent))
