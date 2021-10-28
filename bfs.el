@@ -879,7 +879,7 @@ See `bfs-format-child-entry-function', `bfs-icon' and
 This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
 
-(defvar bfs-max-length-entry+info-parent-function
+(defvar bfs-max-length-parent-function
   'bfs-max-length-entry+size
   "The function used to set the local variable
 `bfs-max-length' in `bfs-parent-buffer-name' buffer.
@@ -908,14 +908,14 @@ in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
 In `bfs-mode', this local variable is set inside `bfs-insert-ls-child'
 function by `bfs-max-length-entry+info-child-function' function.
 In `bfs-parent-mode', this local variable is set inside `bfs-insert-ls-parent'
-function by `bfs-max-length-entry+info-parent-function' function.")
+function by `bfs-max-length-parent-function' function.")
 
 (defun bfs-insert-ls-parent (dir)
   "Insert directory listing for DIR according to `bfs-ls-parent-function'.
 Leave point after the inserted text.
 This function is used to fill `bfs-parent-buffer-name'."
   (let* ((filenames (funcall bfs-ls-parent-function dir))
-         (max-length (funcall bfs-max-length-entry+info-parent-function
+         (max-length (funcall bfs-max-length-parent-function
                               dir 'parent)))
     (insert (s-join "\n" (--map (funcall bfs-format-parent-entry-function
                                          it dir max-length)
@@ -942,7 +942,7 @@ PARENT and put the cursor at PARENT dirname."
     (read-only-mode -1)
     (erase-buffer)
     (if (f-root-p parent)
-        (let ((max-length (funcall bfs-max-length-entry+info-parent-function
+        (let ((max-length (funcall bfs-max-length-parent-function
                                    parent 'parent t)))
           (insert (funcall bfs-format-parent-entry-function parent parent max-length))
           (goto-char (point-min))
@@ -954,7 +954,7 @@ PARENT and put the cursor at PARENT dirname."
       (bfs-parent-mode)
       (setq-local default-directory (f-parent parent))
       (setq bfs-max-length
-            (funcall bfs-max-length-entry+info-parent-function
+            (funcall bfs-max-length-parent-function
                      (f-parent parent) 'parent))))
   (bury-buffer bfs-parent-buffer-name))
 
