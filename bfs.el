@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Tony Aldon
 
 ;; Author: Tony Aldon <tony.aldon.adm@gmail.com>
-;; Version: 0.10.0
+;; Version: 0.17.0
 ;; Package-Requires: ((emacs "27.1") (dash "2.17.0") (f "0.20.0") (s "1.12.0"))
 ;; Keywords: files
 ;; Homepage: https://github.com/tonyaldon/bfs
