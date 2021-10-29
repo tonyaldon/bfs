@@ -883,16 +883,23 @@ The value of this local variable is computed by the function
 
 See: `bfs-insert-ls-child', `bfs-insert-ls-parent' and `bfs-parent-buffer'.")
 
-(defun bfs-insert-ls-parent (dir)
+(defun bfs-insert-ls-parent (dir &optional is-root)
   "Insert directory listing for DIR according to `bfs-ls-parent-function'.
 Leave point after the inserted text.
 This function is used to fill `bfs-parent-buffer-name'."
-  (let* ((filenames (funcall bfs-ls-parent-function dir)))
-    (setq bfs-max-length (bfs-max-length dir 'parent))
-    (insert (s-join "\n"
-                    (--map
-                     (funcall bfs-format-parent-entry-function it dir bfs-max-length)
-                     filenames))))
+  (if is-root
+      (progn
+        (setq bfs-max-length (bfs-max-length dir 'parent 'is-root))
+        (insert (funcall bfs-format-parent-entry-function
+                         dir dir bfs-max-length)))
+    (let* ((filenames (funcall bfs-ls-parent-function dir)))
+      (setq bfs-max-length (bfs-max-length dir 'parent))
+      (insert
+       (s-join "\n"
+               (--map
+                (funcall bfs-format-parent-entry-function
+                         it dir bfs-max-length)
+                filenames)))))
   (insert "\n"))
 
 (defun bfs-insert-ls-child (dir)
@@ -918,10 +925,8 @@ PARENT and put the cursor at PARENT dirname."
       (erase-buffer)
       (cond
        ((f-root-p parent)
-        (setq bfs-max-length (bfs-max-length parent 'parent t))
-        (insert (funcall bfs-format-parent-entry-function
-                         parent parent bfs-max-length))
-        (goto-char (point-min))
+        (bfs-insert-ls-parent parent 'is-root)
+        (bfs-goto-entry parent)
         (setq default-directory parent))
        (t (bfs-insert-ls-parent (f-parent parent))
           (bfs-goto-entry (f-filename parent))
