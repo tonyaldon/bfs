@@ -871,16 +871,6 @@ See `bfs-format-child-entry-function', `bfs-icon' and
 This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
 
-(defvar bfs-max-length-parent-function
-  'bfs-max-length-entry+size
-  "The function used to set the local variable
-`bfs-max-length' in `bfs-parent-buffer-name' buffer.
-
-See `bfs-max-length-entry+size' for an example.
-
-Also see `bfs-format-parent-entry-function'.")
-
-
 (defvar bfs-max-length-child-function
   'bfs-max-length-entry+size
   "The function used to set the local variable
@@ -907,7 +897,7 @@ function by `bfs-max-length-parent-function' function.")
 Leave point after the inserted text.
 This function is used to fill `bfs-parent-buffer-name'."
   (let* ((filenames (funcall bfs-ls-parent-function dir)))
-    (setq bfs-max-length (funcall bfs-max-length-parent-function dir 'parent))
+    (setq bfs-max-length (bfs-max-length-entry+size dir 'parent))
     (insert (s-join "\n"
                     (--map
                      (funcall bfs-format-parent-entry-function it dir bfs-max-length)
@@ -937,8 +927,7 @@ PARENT and put the cursor at PARENT dirname."
       (erase-buffer)
       (cond
        ((f-root-p parent)
-        (setq bfs-max-length
-              (funcall bfs-max-length-parent-function parent 'parent t))
+        (setq bfs-max-length (bfs-max-length-entry+size parent 'parent t))
         (insert (funcall bfs-format-parent-entry-function
                          parent parent bfs-max-length))
         (goto-char (point-min))
