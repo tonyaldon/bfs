@@ -683,8 +683,8 @@ Return the empty string in any other cases."
           (length (--remove (member it '("." "..")) (directory-files file)))))
         (t "")))
 
-(defun bfs-max-length-entry+size (dir in-buffer &optional is-root)
-  "Return the longest length of the concatenation of an entry and its size.
+(defun bfs-max-length (dir in-buffer &optional is-root)
+  "Longest length of the concatenation of entries in DIR and their size.
 The size is determine by the function `bfs-size-or-number-of-files'.
 The entries are obtain by listing DIR directory with:
 - `bfs-ls-child-filtered' if IN-BUFFER is 'child,
@@ -879,7 +879,7 @@ any information we might want to add on the right of the entry,
 in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
 
 The value of this local variable is computed by the function
-`bfs-max-length-entry+size'.
+`bfs-max-length'.
 
 See: `bfs-insert-ls-child', `bfs-insert-ls-parent' and `bfs-parent-buffer'.")
 
@@ -888,7 +888,7 @@ See: `bfs-insert-ls-child', `bfs-insert-ls-parent' and `bfs-parent-buffer'.")
 Leave point after the inserted text.
 This function is used to fill `bfs-parent-buffer-name'."
   (let* ((filenames (funcall bfs-ls-parent-function dir)))
-    (setq bfs-max-length (bfs-max-length-entry+size dir 'parent))
+    (setq bfs-max-length (bfs-max-length dir 'parent))
     (insert (s-join "\n"
                     (--map
                      (funcall bfs-format-parent-entry-function it dir bfs-max-length)
@@ -899,7 +899,7 @@ This function is used to fill `bfs-parent-buffer-name'."
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
   (let ((filenames (bfs-ls-child-filtered dir)))
-    (setq bfs-max-length (bfs-max-length-entry+size dir 'child))
+    (setq bfs-max-length (bfs-max-length dir 'child))
     (insert
      (s-join "\n"
              (--map
@@ -918,7 +918,7 @@ PARENT and put the cursor at PARENT dirname."
       (erase-buffer)
       (cond
        ((f-root-p parent)
-        (setq bfs-max-length (bfs-max-length-entry+size parent 'parent t))
+        (setq bfs-max-length (bfs-max-length parent 'parent t))
         (insert (funcall bfs-format-parent-entry-function
                          parent parent bfs-max-length))
         (goto-char (point-min))
