@@ -881,37 +881,39 @@ in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
 The value of this local variable is computed by the function
 `bfs-max-length'.
 
-See: `bfs-insert-ls-child', `bfs-insert-ls-parent' and `bfs-parent-buffer'.")
+See: `bfs-insert-ls-child'.")
 
-(defun bfs-insert-ls-parent (dir &optional is-root)
-  "Insert directory listing for DIR according to `bfs-ls-parent-function'.
+(defun bfs-insert-ls (dir in-buffer &optional is-root)
+  "Insert directory listing for DIR.
 Leave point after the inserted text.
-This function is used to fill `bfs-parent-buffer-name'."
+
+This function is used to fill `bfs-parent-buffer-name'
+and `bfs-child-buffer-name' buffers depending on the
+value of IN-BUFFER which can be 'child or 'parent.
+
+If IS-ROOT is non-nil, don't do the listing of DIR, and just
+insert DIR in the buffer.
+
+See functions: `bfs-ls-parent-function', `bfs-ls-child-function',
+`bfs-ls-child-filtered', `bfs-format-parent-entry-function',
+`bfs-format-child-entry-function'."
   (if is-root
       (progn
         (setq bfs-max-length (bfs-max-length dir 'parent 'is-root))
         (insert (funcall bfs-format-parent-entry-function
                          dir dir bfs-max-length)))
-    (let* ((filenames (funcall bfs-ls-parent-function dir)))
-      (setq bfs-max-length (bfs-max-length dir 'parent))
-      (insert
-       (s-join "\n"
-               (--map
-                (funcall bfs-format-parent-entry-function
-                         it dir bfs-max-length)
-                filenames)))))
-  (insert "\n"))
-
-(defun bfs-insert-ls-child (dir)
-  "Insert directory listing for DIR according to `bfs-ls-child-function'.
-Leave point after the inserted text."
-  (let ((filenames (bfs-ls-child-filtered dir)))
-    (setq bfs-max-length (bfs-max-length dir 'child))
-    (insert
-     (s-join "\n"
-             (--map
-              (funcall bfs-format-child-entry-function it dir bfs-max-length)
-              filenames))))
+    (let (filenames format-entry)
+      (pcase in-buffer
+        ('parent
+         (setq filenames (funcall bfs-ls-parent-function dir))
+         (setq format-entry bfs-format-parent-entry-function)
+         (setq bfs-max-length (bfs-max-length dir 'parent)))
+        ('child
+         (setq filenames (bfs-ls-child-filtered dir))
+         (setq format-entry bfs-format-child-entry-function)
+         (setq bfs-max-length (bfs-max-length dir 'child))))
+      (insert (s-join "\n" (--map (funcall format-entry it dir bfs-max-length)
+                                  filenames)))))
   (insert "\n"))
 
 (defun bfs-parent-buffer (parent)
@@ -925,10 +927,10 @@ PARENT and put the cursor at PARENT dirname."
       (erase-buffer)
       (cond
        ((f-root-p parent)
-        (bfs-insert-ls-parent parent 'is-root)
+        (bfs-insert-ls parent 'parent 'is-root)
         (bfs-goto-entry parent)
         (setq default-directory parent))
-       (t (bfs-insert-ls-parent (f-parent parent))
+       (t (bfs-insert-ls (f-parent parent) 'parent)
           (bfs-goto-entry (f-filename parent))
           (setq default-directory (f-parent parent)))))
     (bfs-line-highlight-parent))
@@ -943,7 +945,7 @@ and put the cursor at CHILD-ENTRY."
       (bfs-mode))
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (bfs-insert-ls-child parent))
+      (bfs-insert-ls parent 'child))
     (setq-local default-directory parent)
     (bfs-goto-entry child-entry)
     ;; `bfs-line-highlight-child' depends on the faces
