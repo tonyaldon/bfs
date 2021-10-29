@@ -871,15 +871,6 @@ See `bfs-format-child-entry-function', `bfs-icon' and
 This buffer is used show informations explaining why
 we are not previewing `bfs-child' file.")
 
-(defvar bfs-max-length-child-function
-  'bfs-max-length-entry+size
-  "The function used to set the local variable
-`bfs-max-length' in `bfs-child-buffer-name' buffer.
-
-See `bfs-max-length-entry+size' for an example.
-
-Also see `bfs-format-child-entry-function'.")
-
 (defvar-local bfs-max-length
   nil
   "Hold the longest length of the concatenation of an entry and its info.
@@ -887,10 +878,10 @@ Entries are filenames (not the pathes), and infos can be file sizes, or
 any information we might want to add on the right of the entry,
 in `bfs-child-buffer-name' and `bfs-parent-buffer-name' buffers.
 
-In `bfs-mode', this local variable is set inside `bfs-insert-ls-child'
-function by `bfs-max-length-child-function' function.
-In `bfs-parent-mode', this local variable is set inside `bfs-insert-ls-parent'
-function by `bfs-max-length-parent-function' function.")
+The value of this local variable is computed by the function
+`bfs-max-length-entry+size'.
+
+See: `bfs-insert-ls-child', `bfs-insert-ls-parent' and `bfs-parent-buffer'.")
 
 (defun bfs-insert-ls-parent (dir)
   "Insert directory listing for DIR according to `bfs-ls-parent-function'.
@@ -908,7 +899,7 @@ This function is used to fill `bfs-parent-buffer-name'."
   "Insert directory listing for DIR according to `bfs-ls-child-function'.
 Leave point after the inserted text."
   (let ((filenames (bfs-ls-child-filtered dir)))
-    (setq bfs-max-length (funcall bfs-max-length-child-function dir 'child))
+    (setq bfs-max-length (bfs-max-length-entry+size dir 'child))
     (insert
      (s-join "\n"
              (--map
