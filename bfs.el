@@ -479,7 +479,6 @@ must be the parent directory of the file listed in
 See `bfs-parent-buffer' command."
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
-  (bfs-line-highlight-parent)
   (add-hook 'post-command-hook #'bfs-line-highlight-parent nil t)
   (setq buffer-read-only t)
   (setq-local font-lock-defaults '(bfs-parent-font-lock-keywords t)))
@@ -907,12 +906,12 @@ function by `bfs-max-length-parent-function' function.")
   "Insert directory listing for DIR according to `bfs-ls-parent-function'.
 Leave point after the inserted text.
 This function is used to fill `bfs-parent-buffer-name'."
-  (let* ((filenames (funcall bfs-ls-parent-function dir))
-         (max-length (funcall bfs-max-length-parent-function
-                              dir 'parent)))
-    (insert (s-join "\n" (--map (funcall bfs-format-parent-entry-function
-                                         it dir max-length)
-                                filenames))))
+  (let* ((filenames (funcall bfs-ls-parent-function dir)))
+    (setq bfs-max-length (funcall bfs-max-length-parent-function dir 'parent))
+    (insert (s-join "\n"
+                    (--map
+                     (funcall bfs-format-parent-entry-function it dir bfs-max-length)
+                     filenames))))
   (insert "\n"))
 
 (defun bfs-insert-ls-child (dir)
@@ -932,23 +931,22 @@ Leave point after the inserted text."
 The produced buffer contains the listing of the parent directory of
 PARENT and put the cursor at PARENT dirname."
   (with-current-buffer (get-buffer-create bfs-parent-buffer-name)
-    (read-only-mode -1)
-    (erase-buffer)
-    (if (f-root-p parent)
-        (let ((max-length (funcall bfs-max-length-parent-function
-                                   parent 'parent t)))
-          (insert (funcall bfs-format-parent-entry-function parent parent max-length))
-          (goto-char (point-min))
-          (bfs-parent-mode)
-          (setq bfs-max-length max-length)
-          (setq-local default-directory parent))
-      (bfs-insert-ls-parent (f-parent parent))
-      (bfs-goto-entry (f-filename parent))
-      (bfs-parent-mode)
-      (setq-local default-directory (f-parent parent))
-      (setq bfs-max-length
-            (funcall bfs-max-length-parent-function
-                     (f-parent parent) 'parent))))
+    (unless (bound-and-true-p bfs-parent-mode)
+      (bfs-parent-mode))
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (cond
+       ((f-root-p parent)
+        (setq bfs-max-length
+              (funcall bfs-max-length-parent-function parent 'parent t))
+        (insert (funcall bfs-format-parent-entry-function
+                         parent parent bfs-max-length))
+        (goto-char (point-min))
+        (setq default-directory parent))
+       (t (bfs-insert-ls-parent (f-parent parent))
+          (bfs-goto-entry (f-filename parent))
+          (setq default-directory (f-parent parent)))))
+    (bfs-line-highlight-parent))
   (bury-buffer bfs-parent-buffer-name))
 
 (defun bfs-child-buffer (parent child-entry)
