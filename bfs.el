@@ -395,7 +395,13 @@ Also used in `bfs-parent-mode'.")
    overlay (line-beginning-position) (line-beginning-position 2)))
 
 (defun bfs-line-highlight-child ()
-  "Activate overlay on the current line."
+  "Highlight current child entry in child buffer.
+The highlighting is peformed with an overlay.
+
+This function must be called with `bfs-child-buffer-name' buffer current.
+Here an example:
+  (with-current-buffer bfs-child-buffer-name
+    (bfs-line-highlight-child))"
   (unless bfs-line-overlay
     (setq bfs-line-overlay (make-overlay (point) (point))))
   (let* ((entry-point
@@ -419,7 +425,13 @@ Also used in `bfs-parent-mode'.")
   (bfs-line-move-overlay bfs-line-overlay))
 
 (defun bfs-line-highlight-parent ()
-  "Activate overlay on the current line in `bfs-parent-buffer-name'."
+  "Highlight current parent entry in parent buffer.
+The highlighting is peformed with an overlay.
+
+This function must be called with `bfs-parent-buffer-name' buffer current.
+Here an example:
+  (with-current-buffer bfs-parent-buffer-name
+    (bfs-line-highlight-parent))"
   (unless bfs-line-overlay
     (setq bfs-line-overlay (make-overlay (point) (point))))
   (let ((face `(:background ,(face-foreground 'bfs-directory nil t)
