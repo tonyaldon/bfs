@@ -1197,7 +1197,8 @@ When FIRST-TIME is non-nil, set the window layout."
             (when (and bfs-kill-buffer-eagerly bfs-visited-file-buffers)
               (kill-buffer (pop bfs-visited-file-buffers)))
             (unless (-contains-p
-                     (-union bfs-buffer-list-before bfs-visited-file-buffers)
+                     (-union (plist-get bfs-state-before :buffer-list)
+                             bfs-visited-file-buffers)
                      preview-file-buffer)
               (push preview-file-buffer bfs-visited-file-buffers)))
         (if first-time
@@ -1321,12 +1322,13 @@ Intended to be added to `after-delete-frame-functions'."
 
 (defun bfs-kill-visited-file-buffers ()
   "Kill the buffers used to preview files with `bfs-preview'.
-This doesn't kill buffers in `bfs-buffer-list-before' that was lived
-before entering in the `bfs' environment."
-  (-each (-difference bfs-visited-file-buffers bfs-buffer-list-before)
+This doesn't kill buffers in (plist-get bfs-state-before :buffer-list)
+that was lived before entering in the `bfs' environment.
+See: `bfs-state-before'."
+  (-each (-difference bfs-visited-file-buffers
+                      (plist-get bfs-state-before :buffer-list))
     'kill-buffer)
-  (setq bfs-visited-file-buffers nil)
-  (setq bfs-buffer-list-before nil))
+  (setq bfs-visited-file-buffers nil))
 
 (defun bfs-clean ()
   "Leave `bfs' environment and clean Emacs state."
@@ -1341,10 +1343,11 @@ before entering in the `bfs' environment."
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
-    (setq window-sides-vertical bfs-window-sides-vertical-before)
-    (setq bfs-window-sides-vertical-before nil)
-    (setq find-file-run-dired bfs-find-file-run-dired-before)
-    (setq bfs-find-file-run-dired-before nil)
+    (setq window-sides-vertical
+          (plist-get bfs-state-before :window-sides-vertical))
+    (setq find-file-run-dired
+          (plist-get bfs-state-before :find-file-run-dired))
+    (setq bfs-state-before nil)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
     (when (get-buffer bfs-child-buffer-name)
@@ -1366,14 +1369,12 @@ before entering in the `bfs' environment."
   "Non-nil means that `bfs' environment is active in `bfs-frame'.
 Used internally.")
 
-(defvar bfs-buffer-list-before nil
-  "List of all live buffers when entering in the `bfs' environment.
-Used internally.")
-
-(defvar bfs-window-sides-vertical-before nil
-  "Used to store user value of `window-sides-vertical'.")
-
-(defvar bfs-find-file-run-dired-before nil)
+(defvar bfs-state-before nil
+  "Store partial emacs user state before entering `bfs' environment.
+`bfs-state-before' is a property list used internally where:
+  :buffer-list             is for evalutaion of (buffer-list),
+  :window-sides-vertical   for the variable `window-sides-vertical',
+  :find-file-run-dired     for the variable `find-file-run-dired'.")
 
 ;;;###autoload
 (defun bfs (&optional file)
@@ -1428,10 +1429,11 @@ In the child window, the local keymap in use is `bfs-mode-map':
       (when (and child (bfs-valid-child-p child))
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
-        (setq bfs-buffer-list-before (buffer-list))
-        (setq bfs-window-sides-vertical-before window-sides-vertical)
+        (setq bfs-state-before
+              `(:buffer-list ,(buffer-list)
+                :window-sides-vertical ,window-sides-vertical
+                :find-file-run-dired ,find-file-run-dired))
         (setq window-sides-vertical nil)
-        (setq bfs-find-file-run-dired-before find-file-run-dired)
         (setq find-file-run-dired t)
         (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
