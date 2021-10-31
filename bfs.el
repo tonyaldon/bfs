@@ -153,10 +153,11 @@ command `bfs-backward' command.
 
 This allow `bfs-forward' to be smart.")
 
-(defun bfs-get-visited-backward (dir)
-  "Return the last file in `bfs-visited-last'.
-This directory name of this file must match CHILD.
-Return nil if there is no matches."
+(defun bfs-visited-last-in-dir (dir)
+  "Return the last file visited in DIR directory.
+
+Return nil if any file has been visited in DIR so far.
+See `bfs-visited-last'."
   (--first (f-equal-p dir (f-dirname it)) bfs-visited-last))
 
 (defun bfs-update-visited-backward (child)
@@ -202,7 +203,7 @@ If `bfs-child' is an empty directory, leave `bfs' and visit that file."
                   (not (file-accessible-directory-p child)))
              (message "Permission denied: %s" child))
             ((file-directory-p child)
-             (let* ((visited (bfs-get-visited-backward child))
+             (let* ((visited (bfs-visited-last-in-dir child))
                     (ls-child-filtered (bfs-ls-child-filtered child))
                     (visited-belong-child-filtered-p
                      (and visited
