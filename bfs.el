@@ -231,6 +231,71 @@ If `bfs-child' is an empty directory, leave `bfs' and visit that file."
                  (delete-other-windows)
                  (find-file (file-truename child))))))))
 
+(defun bfs-parent-goto-previous-dir ()
+  "Go to the previous dir in parent buffer.
+
+Return file path of the previous dir in parent buffer.
+Return nil if the current parent entry is the first dir
+in the parent buffer.
+
+See: `bfs-parent-sibling-dir'."
+  (with-current-buffer bfs-parent-buffer-name
+    (unless (bobp)
+      (forward-line -1)
+      (let ((file (get-text-property (point) 'bfs-file)))
+        (while (and (not (bobp)) file (not (file-directory-p file)))
+          (forward-line -1)
+          (beginning-of-line)
+          (setq file (get-text-property (point) 'bfs-file)))
+        (when (and file (file-directory-p file)) file)))))
+
+(defun bfs-parent-goto-next-dir ()
+  "Go to the next dir in parent buffer.
+
+Return file path of the next dir in parent buffer.
+Return nil if the current parent entry is the last dir
+in the parent buffer.
+
+See: `bfs-parent-sibling-dir'."
+  (with-current-buffer bfs-parent-buffer-name
+    (unless (eobp)
+      (forward-line 1)
+      (let ((file (get-text-property (point) 'bfs-file)))
+        (while (and (not (eobp)) file (not (file-directory-p file)))
+          (forward-line 1)
+          (beginning-of-line)
+          (setq file (get-text-property (point) 'bfs-file)))
+        (when (and file (file-directory-p file)) file)))))
+
+(defun bfs-parent-sibling-dir (sibling)
+  "Make SIBLING of current parent entry the parent of the `bfs' environment.
+SIBLING can be 'previous or 'next.
+See: `bfs-parent-previous' and `bfs-next-previous'."
+  (bfs-visited-last-push (bfs-child))
+  (when-let ((dir (funcall (pcase sibling
+                             ('previous 'bfs-parent-goto-previous-dir)
+                             ('next 'bfs-parent-goto-next-dir)))))
+    (if-let ((child-in-dir (or (bfs-visited-last-in-dir dir)
+                               (bfs-first-valid-child dir))))
+        (bfs-update child-in-dir)
+      (with-current-buffer bfs-parent-buffer-name
+        (bfs-line-highlight-parent))
+      (with-current-buffer bfs-child-buffer-name
+        (let ((inhibit-read-only t))
+          (erase-buffer)))
+      (bfs-preview nil)
+      (bfs-top-update))))
+
+(defun bfs-parent-previous ()
+  "Make previous parent entry the parent of the `bfs' environment."
+  (interactive)
+  (bfs-parent-sibling-dir 'previous))
+
+(defun bfs-parent-next ()
+  "Make next parent entry the parent of the `bfs' environment."
+  (interactive)
+  (bfs-parent-sibling-dir 'next))
+
 ;;; Scrolling
 
 (defun bfs-half-window-height ()
@@ -354,6 +419,8 @@ Return nil if no directory entry found."
     (define-key map (kbd "b") 'bfs-backward)
     (define-key map (kbd "f") 'bfs-forward)
     (define-key map (kbd "RET") 'bfs-forward)
+    (define-key map (kbd "M-p") 'bfs-parent-previous)
+    (define-key map (kbd "M-n") 'bfs-parent-next)
 
     (define-key map (kbd "<backspace>") 'bfs-scroll-preview-down-half-window)
     (define-key map (kbd "<SPC>") 'bfs-scroll-preview-up-half-window)
