@@ -245,8 +245,7 @@ See: `bfs-parent-sibling-dir'."
       (let ((file (get-text-property (point) 'bfs-file)))
         (while (and (not (bobp)) file (not (file-directory-p file)))
           (forward-line -1)
-          (beginning-of-line)
-          (setq file (get-text-property (point) 'bfs-file)))
+          (setq file (get-text-property (point-at-bol) 'bfs-file)))
         (when (and file (file-directory-p file)) file)))))
 
 (defun bfs-parent-goto-next-dir ()
@@ -258,14 +257,12 @@ in the parent buffer.
 
 See: `bfs-parent-sibling-dir'."
   (with-current-buffer bfs-parent-buffer-name
-    (unless (eobp)
-      (forward-line 1)
-      (let ((file (get-text-property (point) 'bfs-file)))
-        (while (and (not (eobp)) file (not (file-directory-p file)))
-          (forward-line 1)
-          (beginning-of-line)
-          (setq file (get-text-property (point) 'bfs-file)))
-        (when (and file (file-directory-p file)) file)))))
+    (when-let ((match (text-property-search-forward 'bfs-file nil nil 'not-current))
+               (file (prop-match-value match)))
+      (while (and file (not (file-directory-p file)))
+        (setq match (text-property-search-forward 'bfs-file nil nil 'not-current))
+        (setq file (and match (prop-match-value match))))
+      file)))
 
 (defun bfs-parent-sibling-dir (sibling)
   "Make SIBLING of current parent entry the parent of the `bfs' environment.
