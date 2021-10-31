@@ -279,7 +279,8 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
         (bfs-line-highlight-parent))
       (with-current-buffer bfs-child-buffer-name
         (let ((inhibit-read-only t))
-          (erase-buffer)))
+          (erase-buffer)
+          (insert "No preview")))
       (bfs-preview nil)
       (bfs-top-update))))
 
