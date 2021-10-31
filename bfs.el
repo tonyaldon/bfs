@@ -550,6 +550,9 @@ See `bfs-top-buffer'."
 
 ;;;; bfs-parent-mode
 
+(defvar bfs-parent-mode-line-format nil
+  "If non-nil, this is the `mode-line-format' of `bfs-parent-mode'.")
+
 (define-derived-mode bfs-parent-mode fundamental-mode "bfs-parent"
   "Mode used in `bfs-parent-buffer-name' buffer.
 In `bfs-parent-mode', `default-directory' is set to DIR, and
@@ -559,10 +562,14 @@ See `bfs-parent-buffer' command."
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (add-hook 'post-command-hook #'bfs-line-highlight-parent nil t)
+  (setq mode-line-format (or bfs-parent-mode-line-format ""))
   (setq buffer-read-only t)
   (setq-local font-lock-defaults '(bfs-parent-font-lock-keywords t)))
 
 ;;;; bfs-mode
+
+(defvar bfs-mode-line-format nil
+  "If non-nil, this is the `mode-line-format' of `bfs-mode'.")
 
 (define-derived-mode bfs-mode fundamental-mode "bfs"
   "Mode used in `bfs-child-buffer-name' buffer.
@@ -573,6 +580,7 @@ See `bfs-child-buffer' command."
   (setq-local cursor-type nil)
   (setq-local global-hl-line-mode nil)
   (add-hook 'post-command-hook #'bfs-line-highlight-child nil t)
+  (setq mode-line-format (or bfs-mode-line-format ""))
   (setq buffer-read-only t)
   (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
 
