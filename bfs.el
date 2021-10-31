@@ -146,28 +146,29 @@ See `bfs-insert-ls-child'.")
 
 ;;; Movements
 
-(defvar bfs-visited-backward nil
-  "List of child files that have been visited.
-Child files are
-added uniquely to `bfs-visited-backward' only when we use
-`bfs-backward' command.  This allow `bfs-forward' to be smart.")
+(defvar bfs-visited-last nil
+  "List of last child files visited for a given parent directory.
+Child files are uniquely added to `bfs-visited-last' by the
+command `bfs-backward' command.
 
-(defun bfs-get-visited-backward (child)
-  "Return the last file in `bfs-visited-backward'.
+This allow `bfs-forward' to be smart.")
+
+(defun bfs-get-visited-backward (dir)
+  "Return the last file in `bfs-visited-last'.
 This directory name of this file must match CHILD.
 Return nil if there is no matches."
-  (--first (f-equal-p child (f-dirname it)) bfs-visited-backward))
+  (--first (f-equal-p dir (f-dirname it)) bfs-visited-last))
 
 (defun bfs-update-visited-backward (child)
-  "Add CHILD to `bfs-visited-backward' conditionally."
+  "Add CHILD to `bfs-visited-last' conditionally."
   (unless (or (null child)
               (and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
               (not (bfs-valid-child-p child)))
-    (setq bfs-visited-backward
+    (setq bfs-visited-last
           (cons child
                 (--remove (f-equal-p (f-dirname child) (f-dirname it))
-                          bfs-visited-backward)))))
+                          bfs-visited-last)))))
 
 (defun bfs-previous ()
   "Preview previous file."
@@ -1250,7 +1251,7 @@ before entering in the `bfs' environment."
     (remove-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
     (remove-hook 'window-state-change-hook 'bfs-top-update)
-    (setq bfs-visited-backward nil)
+    (setq bfs-visited-last nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
