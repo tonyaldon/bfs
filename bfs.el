@@ -160,8 +160,8 @@ Return nil if any file has been visited in DIR so far.
 See `bfs-visited-last'."
   (--first (f-equal-p dir (f-dirname it)) bfs-visited-last))
 
-(defun bfs-update-visited-backward (child)
-  "Add CHILD to `bfs-visited-last' conditionally."
+(defun bfs-visited-last-push (child)
+  "Add CHILD to `bfs-visited-last' list conditionally."
   (unless (or (null child)
               (and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
@@ -188,7 +188,7 @@ See `bfs-visited-last'."
   "Update `bfs' environment making parent entry the child entry.
 In other words, go up by one node in the file system tree."
   (interactive)
-  (bfs-update-visited-backward (bfs-child))
+  (bfs-visited-last-push (bfs-child))
   (bfs-update default-directory))
 
 (defun bfs-forward ()
