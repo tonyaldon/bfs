@@ -1465,6 +1465,14 @@ If FILE (a file name) is given:
 
 You can only have one `bfs' environment running at a time.
 
+If you call `bfs' with universal argument, `bfs' starts with
+the filename of the `current-buffer' in the child window
+(see `bfs-child-default').
+
+If you call `bfs' without universal argument, `bfs' starts with
+the last file you've visited in the `bfs' environment
+(see `bfs-visited' and `bfs-visit').
+
 When you are in the child window (the middle window), you can:
 - quit `bfs' environment with `bfs-quit',
 - preview files with `bfs-next' and `bfs-previous',
@@ -1492,16 +1500,24 @@ In the child window, the local keymap in use is `bfs-mode-map':
       (bfs-quit)))
    (t
     (let (child)
-      (if file
-          (progn
-            (if (and (file-directory-p file)
-                     (bfs-first-valid-child file))
-                (setq child (bfs-first-valid-child file))
-              (setq child file))
-            ;; to prevent `bfs-check-environment' to check `bfs'
-            ;; environment when we are building it for the first time
-            (setq this-command 'bfs))
-        (setq child (bfs-child-default (current-buffer))))
+
+      ;; set `child'
+      (cond (current-prefix-arg
+             (setq child (bfs-child-default (current-buffer))))
+            (file
+             (if (and (file-directory-p file)
+                      (bfs-first-valid-child file))
+                 (setq child (bfs-first-valid-child file))
+               (setq child file))
+             ;; to prevent `bfs-check-environment' to check `bfs'
+             ;; environment when we are building it for the first time
+             (setq this-command 'bfs))
+            ((and (car bfs-visited)
+                  (bfs-valid-child-p (car bfs-visited)))
+             (setq child (car bfs-visited)))
+            (t (setq child (bfs-child-default (current-buffer)))))
+
+      ;; active `bfs'
       (when (and child (bfs-valid-child-p child))
         (setq bfs-is-active t)
         (window-configuration-to-register :bfs)
