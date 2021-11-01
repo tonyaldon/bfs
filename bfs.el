@@ -1415,7 +1415,6 @@ See: `bfs-state-before'."
     (remove-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
     (remove-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
     (remove-hook 'window-state-change-hook 'bfs-top-update)
-    (setq bfs-visited-last nil)
     (setq bfs-frame nil)
     (setq bfs-windows nil)
     (bfs-kill-visited-file-buffers)
