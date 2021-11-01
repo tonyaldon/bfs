@@ -336,17 +336,7 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
   (if (eobp) (bfs-previous)
     (bfs-preview (bfs-child))))
 
-;;; Find a file, isearch
-
-(defun bfs-isearch-preview-update ()
-  "Update the preview window with the current child entry file.
-
-Intended to be added to `isearch-update-post-hook' and
-`isearch-mode-end-hook'.  This allows to preview the file the
-cursor has moved to using \"isearch\" commands in
-`bfs-child-buffer-name' buffer."
-  (when (string= (buffer-name) bfs-child-buffer-name)
-    (bfs-preview (bfs-child))))
+;;; Find files and dired commands
 
 (defun bfs-find-file (file)
   "Find a FILE with your completion framework and update `bfs' environment."
@@ -664,6 +654,16 @@ See `bfs-windows'."
             ((and child (bfs-broken-symlink-p child))
              (string= preview-file-path (file-truename child)))
             (child (f-equal-p preview-file-path child))))))
+
+(defun bfs-isearch-preview-update ()
+  "Update the preview window with the current child entry file.
+
+Intended to be added to `isearch-update-post-hook' and
+`isearch-mode-end-hook'.  This allows to preview the file the
+cursor has moved to using \"isearch\" commands in
+`bfs-child-buffer-name' buffer."
+  (when (string= (buffer-name) bfs-child-buffer-name)
+    (bfs-preview (bfs-child))))
 
 ;;; List directories
 
