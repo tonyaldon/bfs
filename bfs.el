@@ -346,6 +346,14 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
 
 ;;; Find files and dired commands
 
+(defun bfs-toggle-dired-details ()
+  "Toggle visibility of details in preview window if showing a Dired buffer.
+See `dired-hide-details-mode'."
+  (interactive)
+  (with-selected-window (plist-get bfs-windows :preview)
+    (when (equal major-mode 'dired-mode)
+      (dired-hide-details-mode 'toggle))))
+
 (defun bfs-find-file (file)
   "Find a FILE with your completion framework and update `bfs' environment."
   (interactive
@@ -355,13 +363,29 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
       (bfs-update (bfs-first-valid-child file))
     (bfs-update file)))
 
-(defun bfs-toggle-dired-details ()
-  "Toggle visibility of details in preview window if showing a Dired buffer.
-See `dired-hide-details-mode'."
+(defun bfs-project-find-file-in (filename dirs project)
+  "Complete FILENAME in DIRS in PROJECT and update `bfs' environment."
+  (let* ((all-files (project-files project dirs))
+         (completion-ignore-case read-file-name-completion-ignore-case)
+         (file (funcall project-read-file-name-function
+                        "Find file" all-files nil nil
+                        filename)))
+    (cond ((string= file "")
+           (user-error "You didn't specify the file"))
+          ((and (file-directory-p file)
+                (bfs-first-valid-child file))
+           (bfs-update (bfs-first-valid-child file)))
+          (t (bfs-update file)))))
+
+(defun bfs-project-find-file ()
+  "Update `bfs' env visiting a file (with completion) in the current project.
+
+The completion default is the filename at point, determined by
+`thing-at-point' (whether such file exists or not)."
   (interactive)
-  (with-selected-window (plist-get bfs-windows :preview)
-    (when (equal major-mode 'dired-mode)
-      (dired-hide-details-mode 'toggle))))
+  (let* ((pr (project-current t))
+         (dirs (list (project-root pr))))
+    (bfs-project-find-file-in (thing-at-point 'filename) dirs pr)))
 
 ;;; bfs modes
 
@@ -434,6 +458,7 @@ Return nil if no directory entry found."
     (define-key map (kbd ">") 'bfs-end-of-buffer)
 
     (define-key map (kbd "C-f") 'bfs-find-file)
+    (define-key map (kbd "M-f") 'bfs-project-find-file)
 
     (define-key map (kbd "TAB") 'bfs-toggle-dired-details)
     (define-key map (kbd "D") (lambda () (interactive)
