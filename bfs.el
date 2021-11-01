@@ -152,7 +152,7 @@ hidden too, if you don't they won't be hidden.
 
 See `dired-hide-details-mode' and the function `bfs-dired-hide-details'.")
 
-;;; Movements
+;;; Visited files
 
 (defvar bfs-visited-last nil
   "List of last child files visited for a given parent directory.
@@ -178,6 +178,27 @@ See `bfs-visited-last'."
           (cons child
                 (--remove (f-equal-p (f-dirname child) (f-dirname it))
                           bfs-visited-last)))))
+
+(defvar bfs-visited nil
+  "List of all the visited childs.")
+
+(defvar bfs-visited-history nil
+  "Minibuffer history of the command `bfs-visit'.")
+
+(defun bfs-visit ()
+  "Visit a file (with completion) that has already been visited in bfs.
+See `bfs-visited'."
+  (interactive)
+  (bfs-visited-last-push (bfs-child))
+  (let ((file (completing-read "Visit file: " bfs-visited
+                               nil t nil 'bfs-visited-history)))
+    (if-let (((file-directory-p file))
+             (child-in-dir (or (bfs-visited-last-in-dir file)
+                               (bfs-first-valid-child file))))
+        (bfs-update child-in-dir)
+      (bfs-update file))))
+
+;;; Movements
 
 (defun bfs-previous ()
   "Preview previous file."
@@ -461,6 +482,7 @@ Return nil if no directory entry found."
     (define-key map (kbd "<") 'bfs-beginning-of-buffer)
     (define-key map (kbd ">") 'bfs-end-of-buffer)
 
+    (define-key map (kbd "v") 'bfs-visit)
     (define-key map (kbd "C-f") 'bfs-find-file)
     (define-key map (kbd "M-f") 'bfs-project-find-file)
 
@@ -1228,8 +1250,10 @@ When FIRST-TIME is non-nil, set the window layout."
            (bfs-preview-buffer child "Symlink is broken"))
           (t
            (condition-case err
-               (setq preview-file-buffer
-                     (find-file-noselect (or (file-symlink-p child) child)))
+               (progn
+                 (setq preview-file-buffer
+                       (find-file-noselect (or (file-symlink-p child) child)))
+                 (push (or (file-symlink-p child) child) bfs-visited))
              (file-error
               (bfs-preview-buffer child (error-message-string err))
               (if first-time
