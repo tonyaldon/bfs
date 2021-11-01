@@ -347,6 +347,14 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
       (bfs-update (bfs-first-valid-child file))
     (bfs-update file)))
 
+(defun bfs-toggle-dired-details ()
+  "Toggle visibility of details in preview window if showing a Dired buffer.
+See `dired-hide-details-mode'."
+  (interactive)
+  (with-selected-window (plist-get bfs-windows :preview)
+    (when (equal major-mode 'dired-mode)
+      (dired-hide-details-mode 'toggle))))
+
 ;;; bfs modes
 
 ;;;; Font Lock mode
@@ -419,6 +427,7 @@ Return nil if no directory entry found."
 
     (define-key map (kbd "C-f") 'bfs-find-file)
 
+    (define-key map (kbd "TAB") 'bfs-toggle-dired-details)
     (define-key map (kbd "D") (lambda () (interactive)
                                 (let ((dir default-directory))
                                   (delete-other-windows)
