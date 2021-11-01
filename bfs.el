@@ -358,9 +358,11 @@ See `dired-hide-details-mode'."
   "Find a FILE with your completion framework and update `bfs' environment."
   (interactive
    (list (read-file-name "Find file:" nil default-directory t)))
-  (if (and (file-directory-p file)
-           (bfs-first-valid-child file))
-      (bfs-update (bfs-first-valid-child file))
+  (bfs-visited-last-push (bfs-child))
+  (if-let (((file-directory-p file))
+           (child-in-dir (or (bfs-visited-last-in-dir file)
+                             (bfs-first-valid-child file))))
+      (bfs-update child-in-dir)
     (bfs-update file)))
 
 (defun bfs-project-find-file-in (filename dirs project)
@@ -370,12 +372,13 @@ See `dired-hide-details-mode'."
          (file (funcall project-read-file-name-function
                         "Find file" all-files nil nil
                         filename)))
-    (cond ((string= file "")
-           (user-error "You didn't specify the file"))
-          ((and (file-directory-p file)
-                (bfs-first-valid-child file))
-           (bfs-update (bfs-first-valid-child file)))
-          (t (bfs-update file)))))
+    (if (string= file "")
+        (user-error "You didn't specify the file")
+      (if-let (((file-directory-p file))
+               (child-in-dir (or (bfs-visited-last-in-dir file)
+                                 (bfs-first-valid-child file))))
+          (bfs-update child-in-dir)
+        (bfs-update file)))))
 
 (defun bfs-project-find-file ()
   "Update `bfs' env visiting a file (with completion) in the current project.
@@ -383,6 +386,7 @@ See `dired-hide-details-mode'."
 The completion default is the filename at point, determined by
 `thing-at-point' (whether such file exists or not)."
   (interactive)
+  (bfs-visited-last-push (bfs-child))
   (let* ((pr (project-current t))
          (dirs (list (project-root pr))))
     (bfs-project-find-file-in (thing-at-point 'filename) dirs pr)))
