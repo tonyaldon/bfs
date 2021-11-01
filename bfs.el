@@ -660,7 +660,7 @@ If there is no line with ENTRY or ENTRY is nil, go to the first line."
 
 (defun bfs-valid-child-p (child)
   "Return t if CHILD (file path) can be a child in `bfs' environment."
-  (cond ((not (f-exists-p child))
+  (cond ((or (string= "" child) (not (f-exists-p child)))
          (message "File doesn't exist: %s" child)
          nil)
         ((f-root-p child)
