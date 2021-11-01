@@ -144,6 +144,14 @@ to be kept in the \"ls\" listing of `bfs-child-buffer-name'.
 
 See `bfs-insert-ls-child'.")
 
+(defvar bfs-dired-hide-details t
+  "When t, details are hidden in dired buffers in the preview window.
+When nil, dired buffers are visited only with your settings
+for `dired-mode'.  So, if you hide the details, they will be
+hidden too, if you don't they won't be hidden.
+
+See `dired-hide-details-mode' and the function `bfs-dired-hide-details'.")
+
 ;;; Movements
 
 (defvar bfs-visited-last nil
@@ -673,6 +681,12 @@ cursor has moved to using \"isearch\" commands in
 `bfs-child-buffer-name' buffer."
   (when (string= (buffer-name) bfs-child-buffer-name)
     (bfs-preview (bfs-child))))
+
+(defun bfs-dired-hide-details ()
+  "Hide details in Dired mode.
+This function is meant to be used as the deepest hook
+of `dired-mode-hook'."
+  (dired-hide-details-mode))
 
 ;;; List directories
 
@@ -1357,6 +1371,7 @@ See: `bfs-state-before'."
     (setq find-file-run-dired
           (plist-get bfs-state-before :find-file-run-dired))
     (setq bfs-state-before nil)
+    (remove-hook 'dired-mode-hook 'bfs-dired-hide-details)
     (when (get-buffer bfs-parent-buffer-name)
       (kill-buffer bfs-parent-buffer-name))
     (when (get-buffer bfs-child-buffer-name)
@@ -1444,6 +1459,11 @@ In the child window, the local keymap in use is `bfs-mode-map':
                 :find-file-run-dired ,find-file-run-dired))
         (setq window-sides-vertical nil)
         (setq find-file-run-dired t)
+        (when bfs-dired-hide-details
+          ;; the depth 99 is because we want to be sure that
+          ;; `bfs-dired-hide-details' is called last and
+          ;; so override `dired-hide-details-mode'.
+          (add-hook 'dired-mode-hook 'bfs-dired-hide-details 99))
         (bfs-display child)
         (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
         (add-hook 'window-configuration-change-hook 'bfs-check-environment)
