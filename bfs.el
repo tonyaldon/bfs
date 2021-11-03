@@ -1071,7 +1071,7 @@ REGEXP is an Emacs regexp, not a shell wildcard."
    (list (read-regexp "Mark files (regexp): " nil 'bfs-regexp-history)))
   (save-excursion
     (goto-char (point-min))
-    (let (entry-match entry)
+    (let (entry-match)
       (while (setq entry-match (text-property-search-forward 'bfs-entry))
         (when-let* ((entry (prop-match-value entry-match))
                     ((string-match-p regexp entry)))
@@ -1169,7 +1169,7 @@ a valid regexp.
 This function is meant to be added to `bfs-ls-child-filter-functions'
 temporary when we are dynamically narrowing the child buffer
 with `bfs-narrow'."
-  (condition-case err
+  (condition-case nil
       (string-match-p bfs-narrow-current-regexp entry)
     (error t)))
 
