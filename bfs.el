@@ -1643,6 +1643,9 @@ See: `bfs-state-before'."
           (plist-get bfs-state-before :window-sides-vertical))
     (setq find-file-run-dired
           (plist-get bfs-state-before :find-file-run-dired))
+    (when (bound-and-true-p which-key-mode)
+      (setq which-key-popup-type
+            (plist-get bfs-state-before :which-key-popup-type)))
     (setq bfs-state-before nil)
     (remove-hook 'dired-mode-hook 'bfs-dired-hide-details)
     (when (get-buffer bfs-parent-buffer-name)
@@ -1749,6 +1752,11 @@ In the child window, the local keymap in use is `bfs-mode-map':
                     :find-file-run-dired ,find-file-run-dired))
             (setq window-sides-vertical nil)
             (setq find-file-run-dired t)
+            (when (bound-and-true-p which-key-mode)
+              (setq bfs-state-before
+                    (plist-put bfs-state-before
+                               :which-key-popup-type which-key-popup-type))
+              (setq which-key-popup-type 'minibuffer))
             (when bfs-dired-hide-details
               ;; the depth 99 is because we want to be sure that
               ;; `bfs-dired-hide-details' is called last and
