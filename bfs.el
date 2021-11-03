@@ -35,6 +35,7 @@
 (require 'ls-lisp)
 (require 's)
 (require 'text-property-search)
+(require 'cl-macs)
 
 ;;; User options
 
@@ -158,7 +159,7 @@ This allow `bfs-forward' to be smart.")
 
 Return nil if any file has been visited in DIR so far.
 See `bfs-visited-last'."
-  (--first (f-equal-p dir (f-dirname it)) bfs-visited-last))
+  (--first (string= dir (f-dirname it)) bfs-visited-last))
 
 (defun bfs-visited-last-push (child)
   "Add CHILD to `bfs-visited-last' list conditionally."
@@ -166,10 +167,9 @@ See `bfs-visited-last'."
               (and (file-directory-p child)
                    (not (file-accessible-directory-p child)))
               (not (bfs-valid-child-p child)))
-    (setq bfs-visited-last
-          (cons child
-                (--remove (f-equal-p (f-dirname child) (f-dirname it))
-                          bfs-visited-last)))))
+    (cl-flet ((dirname= (x y) (string= (f-dirname x) (f-dirname y))))
+      (setq bfs-visited-last
+            (cons child (--remove (dirname= child it) bfs-visited-last))))))
 
 (defvar bfs-visited nil
   "List of all the visited childs.")
