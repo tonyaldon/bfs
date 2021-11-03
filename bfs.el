@@ -1067,14 +1067,14 @@ See functions: `bfs-ls-parent-function', `bfs-ls-child-function',
     (let (filenames format-entry)
       (pcase in-buffer
         ('parent
-         (setq filenames (funcall bfs-ls-parent-function dir))
-         (setq format-entry bfs-format-parent-entry-function)
-         (setq bfs-max-length (bfs-max-length dir 'parent)))
+          (setq filenames (funcall bfs-ls-parent-function dir))
+          (setq format-entry bfs-format-parent-entry-function)
+          (setq bfs-max-length (bfs-max-length dir 'parent)))
         ('child
-         (setq filenames (bfs-ls-child-filtered dir))
-         (setq format-entry bfs-format-child-entry-function)
-         (setq bfs-max-length (bfs-max-length dir 'child))))
       (insert (s-join "\n" (--map (funcall format-entry it dir bfs-max-length)
+          (setq filenames (bfs-ls-child-filtered dir))
+          (setq format-entry bfs-format-child-entry-function)
+          (setq bfs-max-length (bfs-max-length dir 'child))))
                                   filenames)))))
   (insert "\n"))
 
