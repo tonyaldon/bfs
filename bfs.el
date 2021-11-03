@@ -135,15 +135,6 @@ return a list of filename (not file path) contained in DIR.
 This is the function we use to fill `bfs-child-buffer-name'.
 See `bfs-ls'.")
 
-(defvar bfs-ls-child-filter-functions nil
-  "List of filter functions that are applied to `bfs-ls-child-function' list.
-
-Each function takes one argument FILENAME (the name, in linux system, part
-after the last \"/\") and returns non-nil if we want FILENAME
-to be kept in the \"ls\" listing of `bfs-child-buffer-name'.
-
-See `bfs-insert-ls-child'.")
-
 (defvar bfs-dired-hide-details t
   "When t, details are hidden in dired buffers in the preview window.
 When nil, dired buffers are visited only with your settings
@@ -741,6 +732,15 @@ of `dired-mode-hook'."
   (dired-hide-details-mode))
 
 ;;; List directories
+
+(defvar bfs-ls-child-filter-functions nil
+  "List of filter functions that are applied to `bfs-ls-child-function' list.
+
+Each function takes one argument FILENAME (the name, in linux system, part
+after the last \"/\") and returns non-nil if we want FILENAME
+to be kept in the \"ls\" listing of `bfs-child-buffer-name'.
+
+See `bfs-insert-ls-child'.")
 
 (defun bfs-ls-group-directory-first (file-alist)
   "Return a list of FILEs sorting FILE-ALIST with directories first.
