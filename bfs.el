@@ -496,6 +496,7 @@ Return nil if no directory entry found."
     (define-key map (kbd ".") 'bfs-hide-dotfiles)
     (define-key map (kbd "/") 'bfs-narrow)
 
+    (define-key map (kbd "g") 'revert-buffer)
     (define-key map (kbd "q") 'bfs-quit)
     map)
   "Keymap for `bfs-mode' used in `bfs-child-buffer-name' buffer.")
@@ -640,6 +641,7 @@ See `bfs-child-buffer' command."
   (add-hook 'post-command-hook #'bfs-line-highlight-child nil t)
   (setq mode-line-format (or bfs-mode-line-format ""))
   (setq buffer-read-only t)
+  (setq-local revert-buffer-function #'bfs-revert)
   (setq-local font-lock-defaults '(bfs-font-lock-keywords t)))
 
 ;;; Utilities
@@ -1113,6 +1115,16 @@ If ENTRIES is non-nil, return entries (filenames) in the list (not files)."
           (and (setq file (get-text-property (point-at-bol) 'bfs-file))
                (push file marked))))
       (nreverse marked))))
+
+(defun bfs-revert (&optional _arg _noconfirm)
+  "Revert `bfs-child-buffer-name'.
+Bfs entries that are marked are left marked."
+  (interactive)
+  (let* ((child (bfs-child))
+         (child-entry (bfs-entry-at-point))
+         (marked-entries (bfs-list-marked 'entries)))
+    (bfs-child-buffer default-directory child-entry marked-entries)
+    (bfs-preview child)))
 
 ;;; Filter entries in child buffer
 
