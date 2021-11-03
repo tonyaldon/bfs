@@ -1738,26 +1738,30 @@ In the child window, the local keymap in use is `bfs-mode-map':
             (t (setq child (bfs-child-default (current-buffer)))))
 
       ;; active `bfs'
-      (when (and child (bfs-valid-child-p child))
-        (setq bfs-is-active t)
-        (window-configuration-to-register :bfs)
-        (setq bfs-state-before
-              `(:buffer-list ,(buffer-list)
-                :window-sides-vertical ,window-sides-vertical
-                :find-file-run-dired ,find-file-run-dired))
-        (setq window-sides-vertical nil)
-        (setq find-file-run-dired t)
-        (when bfs-dired-hide-details
-          ;; the depth 99 is because we want to be sure that
-          ;; `bfs-dired-hide-details' is called last and
-          ;; so override `dired-hide-details-mode'.
-          (add-hook 'dired-mode-hook 'bfs-dired-hide-details 99))
-        (bfs-display child)
-        (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
-        (add-hook 'window-configuration-change-hook 'bfs-check-environment)
-        (add-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
-        (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
-        (add-hook 'window-state-change-hook 'bfs-top-update))))))
+      (condition-case-unless-debug err
+          (when (and child (bfs-valid-child-p child))
+            (setq bfs-is-active t)
+            (window-configuration-to-register :bfs)
+            (setq bfs-state-before
+                  `(:buffer-list ,(buffer-list)
+                    :window-sides-vertical ,window-sides-vertical
+                    :find-file-run-dired ,find-file-run-dired))
+            (setq window-sides-vertical nil)
+            (setq find-file-run-dired t)
+            (when bfs-dired-hide-details
+              ;; the depth 99 is because we want to be sure that
+              ;; `bfs-dired-hide-details' is called last and
+              ;; so override `dired-hide-details-mode'.
+              (add-hook 'dired-mode-hook 'bfs-dired-hide-details 99))
+            (bfs-display child)
+            (add-function :before after-delete-frame-functions 'bfs-clean-if-frame-deleted)
+            (add-hook 'window-configuration-change-hook 'bfs-check-environment)
+            (add-hook 'isearch-mode-end-hook 'bfs-isearch-preview-update)
+            (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
+            (add-hook 'window-state-change-hook 'bfs-top-update))
+        (error
+         (bfs-quit)
+         (message "error with `bfs': %s" err)))))))
 
 ;;; Footer
 
