@@ -34,6 +34,7 @@
 (require 'f)
 (require 'ls-lisp)
 (require 's)
+(require 'text-property-search)
 
 ;;; User options
 
