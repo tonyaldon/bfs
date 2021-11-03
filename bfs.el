@@ -1474,7 +1474,7 @@ When FIRST-TIME is non-nil, set the window layout."
                (progn
                  (setq preview-file-buffer
                        (find-file-noselect (or (file-symlink-p child) child)))
-                 (push (or (file-symlink-p child) child) bfs-visited))
+                 (setq bfs-visited (-uniq (cons child bfs-visited))))
              (file-error
               (bfs-preview-buffer child (error-message-string err))
               (if first-time
