@@ -486,6 +486,13 @@ Return nil if no directory entry found."
                                   (dired dir))))
     (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
 
+    (define-key map (kbd "m") 'bfs-mark)
+    (define-key map (kbd "u") 'bfs-unmark)
+    (define-key map (kbd "U") 'bfs-unmark-all)
+    (define-key map (kbd "t") 'bfs-toggle-marks)
+    (define-key map (kbd "k") 'bfs-kill-marked)
+    (define-key map (kbd "%") 'bfs-mark-regexp)
+
     (define-key map (kbd ".") 'bfs-hide-dotfiles)
 
     (define-key map (kbd "q") 'bfs-quit)
@@ -998,6 +1005,114 @@ See `bfs-format-child-entry-function', `bfs-icon' and
   "A wrapper on `bfs-format-icon+entry+size' where the left spaces are trimmed."
   (s-trim-left (bfs-format-icon+entry+size entry dir max-length mark)))
 
+;;; Mark entries
+
+(defface bfs-mark
+  '((t (:inherit dired-mark)))
+  "Face used for subdirectories."
+  :group 'bfs)
+
+(defvar bfs-regexp-history nil
+  "History list of regular expressions used by `bfs-mark-regex'.
+This history is also used by `bfs-narrow'.")
+
+(defun bfs-entry-at-point ()
+  "Return entry on the line at `point'.
+Return nil if there is no entry found."
+  (if-let ((entry-match
+            (save-excursion
+              (goto-char (point-at-bol))
+              (text-property-search-forward 'bfs-entry))))
+      (prop-match-value entry-match)))
+
+(defun bfs-mark ()
+  "Mark line at point."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (when-let ((entry (bfs-entry-at-point)))
+      (save-excursion
+        (delete-and-extract-region (point-at-bol) (point-at-eol))
+        (insert (funcall bfs-format-child-entry-function
+                         entry default-directory bfs-max-length t))))))
+
+(defun bfs-unmark ()
+  "Unmark line at point."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (when-let ((entry (bfs-entry-at-point)))
+      (save-excursion
+        (delete-and-extract-region (point-at-bol) (point-at-eol))
+        (insert (funcall bfs-format-child-entry-function
+                         entry default-directory bfs-max-length))
+        (font-lock-fontify-region (point-at-bol) (point-at-eol))))))
+
+(defun bfs-unmark-all ()
+  "Unmark all buffer."
+  (interactive)
+  (let ((inhibit-read-only t) entry)
+    (save-excursion
+      (goto-char (point-min))
+      (while (text-property-search-forward 'bfs-marked t t)
+        (setq entry (bfs-entry-at-point))
+        (delete-and-extract-region (point-at-bol) (point-at-eol))
+        (insert (funcall bfs-format-child-entry-function
+                         entry default-directory bfs-max-length))))
+    (save-excursion
+      (font-lock-fontify-region (point-at-bol) (point-at-eol)))))
+
+(defun bfs-mark-regexp (regexp)
+  "Mark all files matching REGEXP.
+REGEXP is matched against each bfs entry (filename).
+REGEXP is an Emacs regexp, not a shell wildcard."
+  (interactive
+   (list (read-regexp "Mark files (regexp): " nil 'bfs-regexp-history)))
+  (save-excursion
+    (goto-char (point-min))
+    (let (entry-match entry)
+      (while (setq entry-match (text-property-search-forward 'bfs-entry))
+        (when-let* ((entry (prop-match-value entry-match))
+                    ((string-match-p regexp entry)))
+          (bfs-mark)
+          (forward-line))))))
+
+(defun bfs-is-marked-p ()
+  "Return t if entry at point is marked."
+  (get-text-property (point-at-bol) 'bfs-marked))
+
+(defun bfs-toggle-marks ()
+  "Toggle mark in buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (and (not (eobp)) (bfs-entry-at-point))
+      (if (bfs-is-marked-p) (bfs-unmark) (bfs-mark))
+      (forward-line))))
+
+(defun bfs-kill-marked ()
+  "Kill all marked entries (not the files)."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (save-excursion
+      (goto-char (point-min))
+      (while (text-property-search-forward 'bfs-marked t t)
+        (delete-and-extract-region (point-at-bol) (line-beginning-position 2))))
+    (bfs-preview (bfs-child))))
+
+(defun bfs-list-marked (&optional entries)
+  "Return the list of marked files in `bfs-child-buffer-name' buffer.
+Return nil if no files marked.
+
+If ENTRIES is non-nil, return entries (filenames) in the list (not files)."
+  (let (marked file)
+    (save-excursion
+      (goto-char (point-min))
+      (while (text-property-search-forward 'bfs-marked t t)
+        (if-let ((entries) (entry (bfs-entry-at-point)))
+            (push entry marked)
+          (and (setq file (get-text-property (point-at-bol) 'bfs-file))
+               (push file marked))))
+      (nreverse marked))))
+
 ;;; Filter entries in child buffer
 
 ;;;; Hide dotfiles in child buffer
@@ -1046,7 +1161,7 @@ The value of this local variable is computed by the function
 
 See: `bfs-insert-ls-child'.")
 
-(defun bfs-insert-ls (dir in-buffer &optional is-root)
+(defun bfs-insert-ls (dir in-buffer &optional is-root marked-entries)
   "Insert directory listing for DIR.
 Leave point after the inserted text.
 
@@ -1056,6 +1171,10 @@ value of IN-BUFFER which can be 'child or 'parent.
 
 If IS-ROOT is non-nil, don't do the listing of DIR, and just
 insert DIR in the buffer.
+
+If MARKED-ENTRIES is non-nil, this is a list of the entries
+that must be marked in the child buffer (so it only works
+with IN-BUFFER equal to 'child).
 
 See functions: `bfs-ls-parent-function', `bfs-ls-child-function',
 `bfs-ls-child-filtered', `bfs-format-parent-entry-function',
@@ -1072,10 +1191,12 @@ See functions: `bfs-ls-parent-function', `bfs-ls-child-function',
           (setq format-entry bfs-format-parent-entry-function)
           (setq bfs-max-length (bfs-max-length dir 'parent)))
         ('child
-      (insert (s-join "\n" (--map (funcall format-entry it dir bfs-max-length)
           (setq filenames (bfs-ls-child-filtered dir))
           (setq format-entry bfs-format-child-entry-function)
           (setq bfs-max-length (bfs-max-length dir 'child))))
+      (insert (s-join "\n" (--map (funcall format-entry
+                                           it dir bfs-max-length
+                                           (and (member it marked-entries) t))
                                   filenames)))))
   (insert "\n"))
 
@@ -1099,16 +1220,17 @@ PARENT and put the cursor at PARENT dirname."
     (bfs-line-highlight-parent))
   (bury-buffer bfs-parent-buffer-name))
 
-(defun bfs-child-buffer (parent child-entry)
+(defun bfs-child-buffer (parent child-entry &optional marked-entries)
   "Produce `bfs-child-buffer-name' buffer.
 The produced buffer contains the listing of the directory PARENT
-and put the cursor at CHILD-ENTRY."
+and put the cursor at CHILD-ENTRY.
+If CHILD-ENTRY is nil, cursor is put in the first line (see `bfs-goto-entry')."
   (with-current-buffer (get-buffer-create bfs-child-buffer-name)
     (unless (bound-and-true-p bfs-mode)
       (bfs-mode))
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (bfs-insert-ls parent 'child))
+      (bfs-insert-ls parent 'child nil marked-entries))
     (setq-local default-directory parent)
     (bfs-goto-entry child-entry)
     ;; `bfs-line-highlight-child' depends on the faces
