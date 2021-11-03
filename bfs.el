@@ -309,6 +309,7 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
       (with-current-buffer bfs-child-buffer-name
         (let ((inhibit-read-only t))
           (erase-buffer)
+          (setq default-directory dir)
           (insert "No preview")))
       (bfs-preview nil)
       (bfs-top-update))))
