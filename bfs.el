@@ -998,8 +998,9 @@ See `bfs-format-child-entry-function', `bfs-icon' and
   "A wrapper on `bfs-format-icon+entry+size' where the left spaces are trimmed."
   (s-trim-left (bfs-format-icon+entry+size entry dir max-length mark)))
 
+;;; Filter entries in child buffer
 
-;;; Filtering
+;;;; Hide dotfiles in child buffer
 
 (defun bfs-hide-dotfiles-filter (filename)
   "Return non-nil if FILENAME doesn't start with a \".\"."
