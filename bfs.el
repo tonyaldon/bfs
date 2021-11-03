@@ -1759,8 +1759,6 @@ In the child window, the local keymap in use is `bfs-mode-map':
         (add-hook 'isearch-update-post-hook 'bfs-isearch-preview-update)
         (add-hook 'window-state-change-hook 'bfs-top-update))))))
 
-(global-set-key (kbd "M-]") 'bfs)
-
 ;;; Footer
 
 (provide 'bfs)
