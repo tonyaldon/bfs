@@ -494,6 +494,7 @@ Return nil if no directory entry found."
     (define-key map (kbd "%") 'bfs-mark-regexp)
 
     (define-key map (kbd ".") 'bfs-hide-dotfiles)
+    (define-key map (kbd "/") 'bfs-narrow)
 
     (define-key map (kbd "q") 'bfs-quit)
     map)
@@ -1132,6 +1133,89 @@ If ENTRIES is non-nil, return entries (filenames) in the list (not files)."
   (bfs-child-buffer default-directory
                     (or (and (bfs-child) (f-filename (bfs-child))) ""))
   (bfs-preview (bfs-child)))
+
+;;;; Narrow child buffer interactively
+
+(defvar bfs-narrow-current-regexp nil
+  "Regexp used to narrow child buffer dynamically.
+This variable is set and used by `bfs-narrow-update'.
+This is how we dynamically modify the filter function
+`bfs-narrow-filter' and so narrow the child buffer.
+
+See `bfs-narrow'.")
+
+(defvar bfs-narrow-marked-entries nil
+  "List of marked entries before narrowing with `bfs-narrow'.")
+
+(defvar bfs-narrow-child-entry nil
+  "child before narrowing with `bfs-narrow'.")
+
+(defun bfs-narrow-filter (entry)
+  "Return t when `bfs-narrow-current-regexp' matches ENTRY.
+Unconditionally return t when `bfs-narrow-current-regexp' isn't
+a valid regexp.
+This function is meant to be added to `bfs-ls-child-filter-functions'
+temporary when we are dynamically narrowing the child buffer
+with `bfs-narrow'."
+  (condition-case err
+      (string-match-p bfs-narrow-current-regexp entry)
+    (error t)))
+
+(defun bfs-narrow-minibuffer-setup ()
+  "Set minibuffer for dynamic narrowing.
+This function is meant to be added to the hook `minibuffer-setup-hook'.
+See `bfs-narrow-update'."
+  (add-hook 'post-command-hook 'bfs-narrow-update nil 'local))
+
+(defun bfs-narrow-update ()
+  "Narrow the child buffer based on the contents of the minibuffer.
+This function is meant to be added in the hook `post-command-hook'
+locally in minibuffer.  See `bfs-narrow-minibuffer-setup' and `bfs-narrow'.
+
+This function locally set `bfs-narrow-current-regexp'.
+This function depends on the value of `bfs-narrow-child-entry' and
+`bfs-narrow-marked-entries'."
+  (let* ((bfs-narrow-current-regexp (minibuffer-contents-no-properties))
+         (child-window (plist-get bfs-windows :child))
+         (child-entry (or (and (s-blank-p bfs-narrow-current-regexp)
+                               bfs-narrow-child-entry)
+                          (and (bfs-child) (f-filename (bfs-child))))))
+    (with-selected-window child-window
+      (bfs-child-buffer default-directory
+                        child-entry
+                        bfs-narrow-marked-entries)
+      (bfs-preview (bfs-child)))))
+
+(defun bfs-narrow ()
+  "Narrow bfs child buffer to filenames matching a regexp read from minibuffer.
+See `bfs-narrow-filter', `bfs-narrow-update' and `bfs-narrow-minibuffer-setup'."
+  (interactive)
+  (let ((bfs-narrow-child-entry (and (bfs-child) (f-filename (bfs-child))))
+        quit-normaly-p)
+    (unwind-protect
+        (progn
+          (setq bfs-narrow-marked-entries (bfs-list-marked 'entries))
+          (add-hook 'minibuffer-setup-hook 'bfs-narrow-minibuffer-setup)
+          (push 'bfs-narrow-filter bfs-ls-child-filter-functions)
+          ;;`read-regexp' returns `nil' when minibuffer is quitted with C-g
+          (setq quit-normaly-p
+                (read-regexp "narrow files (regexp): "
+                             nil 'bfs-regexp-history)))
+      (setq bfs-ls-child-filter-functions
+            (--remove (equal it 'bfs-narrow-filter)
+                      bfs-ls-child-filter-functions))
+      (remove-hook 'minibuffer-setup-hook 'bfs-narrow-minibuffer-setup)
+      (if quit-normaly-p
+          (with-selected-window (plist-get bfs-windows :child)
+            (bfs-preview (bfs-child)))
+        (with-selected-window (plist-get bfs-windows :child)
+          (bfs-child-buffer default-directory
+                            bfs-narrow-child-entry
+                            bfs-narrow-marked-entries)
+          (bfs-preview (bfs-child))))
+      (setq bfs-narrow-current-regexp nil)
+      (setq bfs-narrow-marked-entries nil)
+      (setq bfs-narrow-child-entry nil))))
 
 ;;; Create top, parent, child and preview buffers
 
