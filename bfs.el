@@ -1680,7 +1680,8 @@ Used internally.")
 `bfs-state-before' is a property list used internally where:
   :buffer-list             is for evalutaion of (buffer-list),
   :window-sides-vertical   for the variable `window-sides-vertical',
-  :find-file-run-dired     for the variable `find-file-run-dired'.")
+  :find-file-run-dired     for the variable `find-file-run-dired',
+  :which-key-popup-type    for the variable `which-key-popup-type'.")
 
 ;;;###autoload
 (defun bfs (&optional file)
