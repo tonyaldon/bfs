@@ -58,7 +58,7 @@ center window).
 **Note 4:** You can use `isearch` commands to select files in the
 child window, the preview window will be updated automatically.
 
-## Findind files
+## Finding files
 
 `bfs` provides two commands `bfs-find-file` and
 `bfs-project-find-file` respectively bound to `C-f` and `M-f` to find
