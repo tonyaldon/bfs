@@ -360,6 +360,17 @@ See: `bfs-parent-previous' and `bfs-next-previous'."
 
 ;;; Find files and dired commands
 
+(defun bfs-dired ()
+  "Quit bfs and open a dired buffer listing the files that was in child buffer."
+  (interactive)
+  (let ((dir default-directory)
+        (file (bfs-child)))
+    (delete-other-windows)
+    (bfs-clean)
+    (dired dir)
+    (when file
+      (dired-goto-file file))))
+
 (defun bfs-toggle-dired-details ()
   "Toggle visibility of details in preview window if showing a Dired buffer.
 See `dired-hide-details-mode'."
@@ -474,18 +485,13 @@ Return nil if no directory entry found."
     (define-key map (kbd "C-<SPC>") 'bfs-scroll-up-half-window)
     (define-key map (kbd "<") 'bfs-beginning-of-buffer)
     (define-key map (kbd ">") 'bfs-end-of-buffer)
+    (define-key map (kbd "TAB") 'bfs-toggle-dired-details)
 
     (define-key map (kbd "v") 'bfs-visit)
     (define-key map (kbd "C-f") 'bfs-find-file)
     (define-key map (kbd "M-f") 'bfs-project-find-file)
 
-    (define-key map (kbd "TAB") 'bfs-toggle-dired-details)
-    (define-key map (kbd "D") (lambda () (interactive)
-                                (let ((dir default-directory))
-                                  (delete-other-windows)
-                                  (bfs-clean)
-                                  (dired dir))))
-    (define-key map (kbd "T") (lambda () (interactive) (ansi-term "/bin/bash")))
+    (define-key map (kbd "'") 'bfs-dired)
 
     (define-key map (kbd "m") 'bfs-mark)
     (define-key map (kbd "u") 'bfs-unmark)
