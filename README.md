@@ -3,6 +3,8 @@
 `bfs` (Browse File System) implements for `emacs` a dynamic tree view
 of the file system à la [ranger](https://github.com/ranger/ranger).
 
+![bfs](./bfs.png)
+
 # Install
 
 Put [bfs.el](./bfs.el) in your load path and add this to your init
