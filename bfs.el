@@ -1465,7 +1465,7 @@ When FIRST-TIME is non-nil, set the window layout."
            (bfs-preview-buffer child
                                (format "File ignored due to its extension: %s"
                                        (file-name-extension child))))
-          ((and (file-exists-p child)
+          ((and (file-exists-p child) bfs-max-size
                 (> (file-attribute-size (file-attributes (file-truename child)))
                    bfs-max-size))
            (bfs-preview-buffer child
